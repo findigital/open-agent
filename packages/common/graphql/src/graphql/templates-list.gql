@@ -1,0 +1,18 @@
+query GetTemplates($workspaceId: ID, $category: String, $isPublic: Boolean) {
+  templates(workspaceId: $workspaceId, category: $category, isPublic: $isPublic) {
+    id
+    name
+    description
+    category
+    isPublic
+    createdAt
+    sections {
+      id
+      title
+      type
+      order
+      wordLimit
+      aiPromptGuidance
+    }
+  }
+}
