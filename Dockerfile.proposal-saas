@@ -1,0 +1,76 @@
+# Multi-stage build for optimal image size
+FROM node:20-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache python3 make g++ git
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY .yarn ./.yarn
+COPY packages/backend/server/package.json ./packages/backend/server/
+
+# Install dependencies
+RUN yarn install --frozen-lockfile
+
+# Copy source code
+COPY packages/backend/server ./packages/backend/server
+COPY tsconfig.json ./
+
+# Generate Prisma client
+WORKDIR /app/packages/backend/server
+RUN yarn prisma generate
+
+# Build application
+RUN yarn build
+
+# Production stage
+FROM node:20-alpine AS production
+
+# Install runtime dependencies
+RUN apk add --no-cache curl postgresql-client
+
+# Create app user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY .yarn ./.yarn
+COPY packages/backend/server/package.json ./packages/backend/server/
+
+# Install production dependencies only
+ENV NODE_ENV=production
+RUN yarn workspaces focus @afk/server --production
+
+# Copy built application from builder
+COPY --from=builder /app/packages/backend/server/dist ./packages/backend/server/dist
+COPY --from=builder /app/packages/backend/server/node_modules/.prisma ./packages/backend/server/node_modules/.prisma
+COPY packages/backend/server/prisma ./packages/backend/server/prisma
+
+# Copy migration and seed scripts
+COPY packages/backend/server/scripts ./packages/backend/server/scripts
+
+# Change ownership
+RUN chown -R nodejs:nodejs /app
+
+# Switch to app user
+USER nodejs
+
+# Expose port
+EXPOSE 8080
+
+# Set working directory to server
+WORKDIR /app/packages/backend/server
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Start application
+CMD ["sh", "-c", "yarn prisma migrate deploy && node dist/main.mjs"]

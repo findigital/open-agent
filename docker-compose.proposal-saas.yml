@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: proposal-saas-postgres
+    environment:
+      POSTGRES_DB: openagent
+      POSTGRES_USER: openagent
+      POSTGRES_PASSWORD: openagent_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openagent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proposal-saas
+
+  redis:
+    image: redis:7-alpine
+    container_name: proposal-saas-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proposal-saas
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.proposal-saas
+    container_name: proposal-saas-backend
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://openagent:openagent_password@postgres:5432/openagent
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GRANTS_GOV_API_KEY: ${GRANTS_GOV_API_KEY:-}
+      FOUNDATION_DIRECTORY_API_KEY: ${FOUNDATION_DIRECTORY_API_KEY:-}
+      OPEN_AGENT_SERVER_EXTERNAL_URL: ${EXTERNAL_URL:-http://localhost:8080}
+      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./packages/backend/server/.env:/app/.env
+      - uploads:/app/uploads
+    networks:
+      - proposal-saas
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: proposal-saas-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@proposal-saas.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - proposal-saas
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploads:
+    driver: local
+
+networks:
+  proposal-saas:
+    driver: bridge
