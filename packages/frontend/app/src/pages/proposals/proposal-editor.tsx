@@ -5,7 +5,7 @@ import {
   ScrollableContainer,
   toast,
 } from '@afk/component';
-import { ArrowLeftIcon, CheckIcon, MoreVerticalIcon } from '@blocksuite/icons/rc';
+import { ArrowLeftIcon, CheckIcon, DownloadIcon, MoreVerticalIcon } from '@blocksuite/icons/rc';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -163,6 +163,132 @@ const SectionEditor = ({ section, proposalId, onGenerate, generating }: SectionE
   );
 };
 
+const ExportModal = ({
+  proposalId,
+  proposalTitle,
+  onClose,
+}: {
+  proposalId: string;
+  proposalTitle: string;
+  onClose: () => void;
+}) => {
+  const [format, setFormat] = useState<'pdf' | 'docx'>('pdf');
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await gql({
+        query: `
+          mutation ExportProposal($proposalId: ID!, $format: ExportFormat!) {
+            exportProposal(proposalId: $proposalId, format: $format) {
+              fileUrl
+              fileName
+              mimeType
+            }
+          }
+        `,
+        variables: {
+          proposalId,
+          format: format.toUpperCase(),
+        },
+      });
+
+      if (res.data?.exportProposal) {
+        const { fileUrl, fileName } = res.data.exportProposal;
+
+        // Create a temporary link and trigger download
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success(`Proposal exported as ${format.toUpperCase()}`);
+        onClose();
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export proposal. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h2 className="text-xl font-bold mb-4">Export Proposal</h2>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Export "{proposalTitle}" to submit to grant funders.
+        </p>
+
+        <div className="space-y-3 mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Select Format
+          </label>
+
+          <button
+            onClick={() => setFormat('pdf')}
+            className={cn(
+              'w-full text-left p-4 border-2 rounded-lg transition-all',
+              format === 'pdf'
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-200 hover:border-gray-300 bg-white'
+            )}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-semibold">PDF Document</h3>
+                <p className="text-xs text-gray-600 mt-1">
+                  Universal format, best for online submissions
+                </p>
+              </div>
+              {format === 'pdf' && (
+                <CheckIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
+              )}
+            </div>
+          </button>
+
+          <button
+            onClick={() => setFormat('docx')}
+            className={cn(
+              'w-full text-left p-4 border-2 rounded-lg transition-all',
+              format === 'docx'
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-200 hover:border-gray-300 bg-white'
+            )}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-semibold">Word Document (.docx)</h3>
+                <p className="text-xs text-gray-600 mt-1">
+                  Editable format, best for further customization
+                </p>
+              </div>
+              {format === 'docx' && (
+                <CheckIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
+              )}
+            </div>
+          </button>
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={onClose} disabled={exporting}>
+            Cancel
+          </Button>
+          <Button onClick={handleExport} loading={exporting}>
+            <DownloadIcon className="w-4 h-4 mr-2" />
+            Export {format.toUpperCase()}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AIAssistantPanel = ({
   proposalId,
   sectionId,
@@ -258,6 +384,7 @@ export const ProposalEditor = () => {
   const { currentProposal, loading, loadProposal, generateSection } = useProposalsStore();
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -406,9 +533,19 @@ export const ProposalEditor = () => {
                 )}
               </div>
             </div>
-            <IconButton>
-              <MoreVerticalIcon />
-            </IconButton>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setShowExportModal(true)}
+                variant="secondary"
+                size="small"
+              >
+                <DownloadIcon className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+              <IconButton>
+                <MoreVerticalIcon />
+              </IconButton>
+            </div>
           </div>
         </div>
 
@@ -469,6 +606,15 @@ export const ProposalEditor = () => {
           </div>
         </div>
       </div>
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <ExportModal
+          proposalId={currentProposal.id}
+          proposalTitle={currentProposal.title}
+          onClose={() => setShowExportModal(false)}
+        />
+      )}
     </div>
   );
 };

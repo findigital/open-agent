@@ -1,0 +1,7 @@
+mutation ExportProposal($proposalId: ID!, $format: ExportFormat!) {
+  exportProposal(proposalId: $proposalId, format: $format) {
+    fileUrl
+    fileName
+    mimeType
+  }
+}
