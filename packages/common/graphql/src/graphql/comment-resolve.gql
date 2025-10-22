@@ -1,0 +1,7 @@
+mutation ResolveComment($commentId: ID!, $resolved: Boolean!) {
+  updateComment(commentId: $commentId, resolved: $resolved) {
+    id
+    resolved
+    updatedAt
+  }
+}

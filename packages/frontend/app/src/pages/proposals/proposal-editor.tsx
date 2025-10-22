@@ -1,11 +1,12 @@
 import {
   Button,
   IconButton,
+  Input,
   Loading,
   ScrollableContainer,
   toast,
 } from '@afk/component';
-import { ArrowLeftIcon, CheckIcon, DownloadIcon, MoreVerticalIcon } from '@blocksuite/icons/rc';
+import { ArrowLeftIcon, CheckIcon, CommentIcon, DownloadIcon, MoreVerticalIcon } from '@blocksuite/icons/rc';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -289,6 +290,231 @@ const ExportModal = ({
   );
 };
 
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  resolved: boolean;
+  author: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+const CommentsPanel = ({
+  proposalId,
+  sectionId,
+}: {
+  proposalId: string;
+  sectionId?: string;
+}) => {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [showResolved, setShowResolved] = useState(false);
+
+  const loadComments = useCallback(async () => {
+    if (!sectionId) return;
+
+    setLoading(true);
+    try {
+      const res = await gql({
+        query: `
+          query GetComments($proposalId: ID!, $sectionId: ID) {
+            comments(proposalId: $proposalId, sectionId: $sectionId) {
+              id
+              content
+              createdAt
+              resolved
+              author {
+                id
+                name
+                email
+              }
+            }
+          }
+        `,
+        variables: { proposalId, sectionId },
+      });
+
+      if (res.data?.comments) {
+        setComments(res.data.comments);
+      }
+    } catch (error) {
+      console.error('Failed to load comments:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [proposalId, sectionId]);
+
+  useEffect(() => {
+    loadComments();
+  }, [loadComments]);
+
+  const handleAddComment = async () => {
+    if (!sectionId || !newComment.trim()) return;
+
+    setSubmitting(true);
+    try {
+      await gql({
+        query: `
+          mutation CreateComment($input: CreateCommentInput!) {
+            createComment(input: $input) {
+              id
+              content
+              createdAt
+              author {
+                id
+                name
+                email
+              }
+            }
+          }
+        `,
+        variables: {
+          input: {
+            proposalId,
+            sectionId,
+            content: newComment.trim(),
+          },
+        },
+      });
+
+      setNewComment('');
+      toast.success('Comment added');
+      loadComments();
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+      toast.error('Failed to add comment');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleToggleResolved = async (commentId: string, resolved: boolean) => {
+    try {
+      await gql({
+        query: `
+          mutation ResolveComment($commentId: ID!, $resolved: Boolean!) {
+            updateComment(commentId: $commentId, resolved: $resolved) {
+              id
+              resolved
+            }
+          }
+        `,
+        variables: { commentId, resolved: !resolved },
+      });
+
+      toast.success(resolved ? 'Comment reopened' : 'Comment resolved');
+      loadComments();
+    } catch (error) {
+      console.error('Failed to update comment:', error);
+      toast.error('Failed to update comment');
+    }
+  };
+
+  const filteredComments = showResolved
+    ? comments
+    : comments.filter(c => !c.resolved);
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold">Comments</h3>
+        {comments.length > 0 && (
+          <span className="text-xs text-gray-500">
+            {filteredComments.length} {showResolved ? 'total' : 'open'}
+          </span>
+        )}
+      </div>
+
+      {!sectionId ? (
+        <p className="text-sm text-gray-500">Select a section to view comments</p>
+      ) : (
+        <>
+          {/* Add Comment */}
+          <div className="mb-4">
+            <textarea
+              value={newComment}
+              onChange={e => setNewComment(e.target.value)}
+              placeholder="Add a comment or suggestion..."
+              className="w-full h-20 p-2 border border-gray-300 rounded text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <Button
+              onClick={handleAddComment}
+              disabled={!newComment.trim() || submitting}
+              loading={submitting}
+              size="small"
+              className="w-full mt-2"
+            >
+              <CommentIcon className="w-4 h-4 mr-2" />
+              Add Comment
+            </Button>
+          </div>
+
+          {/* Comments List */}
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loading />
+            </div>
+          ) : filteredComments.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-4">
+              {showResolved ? 'No comments yet' : 'No open comments'}
+            </p>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {filteredComments.map(comment => (
+                <div
+                  key={comment.id}
+                  className={cn(
+                    'p-3 rounded-lg border',
+                    comment.resolved
+                      ? 'bg-gray-50 border-gray-200'
+                      : 'bg-white border-gray-300'
+                  )}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="text-xs font-medium">{comment.author.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {dayjs(comment.createdAt).format('MMM D, h:mm A')}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleToggleResolved(comment.id, comment.resolved)}
+                      className={cn(
+                        'text-xs px-2 py-1 rounded',
+                        comment.resolved
+                          ? 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                          : 'bg-green-100 text-green-700 hover:bg-green-200'
+                      )}
+                    >
+                      {comment.resolved ? 'Reopen' : 'Resolve'}
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-700">{comment.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Show/Hide Resolved Toggle */}
+          {comments.some(c => c.resolved) && (
+            <button
+              onClick={() => setShowResolved(!showResolved)}
+              className="w-full mt-3 text-sm text-blue-600 hover:underline"
+            >
+              {showResolved ? 'Hide' : 'Show'} resolved comments
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
 const AIAssistantPanel = ({
   proposalId,
   sectionId,
@@ -566,8 +792,13 @@ export const ProposalEditor = () => {
             )}
           </ScrollableContainer>
 
-          {/* Right Sidebar - AI Assistant */}
-          <div className="w-80 border-l border-gray-200 p-4 bg-gray-50 overflow-auto">
+          {/* Right Sidebar - Comments & AI Assistant */}
+          <div className="w-80 border-l border-gray-200 p-4 bg-gray-50 overflow-auto space-y-4">
+            <CommentsPanel
+              proposalId={currentProposal.id}
+              sectionId={activeSectionId || undefined}
+            />
+
             <AIAssistantPanel
               proposalId={currentProposal.id}
               sectionId={activeSectionId || undefined}

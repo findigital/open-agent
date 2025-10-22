@@ -1,0 +1,17 @@
+query GetComments($proposalId: ID!, $sectionId: ID) {
+  comments(proposalId: $proposalId, sectionId: $sectionId) {
+    id
+    content
+    createdAt
+    resolved
+    author {
+      id
+      name
+      email
+    }
+    section {
+      id
+      title
+    }
+  }
+}
