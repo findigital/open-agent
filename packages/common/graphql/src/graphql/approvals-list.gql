@@ -1,0 +1,19 @@
+query GetProposalApprovals($proposalId: ID!) {
+  proposalApprovals(proposalId: $proposalId) {
+    id
+    status
+    requestedAt
+    respondedAt
+    feedback
+    approver {
+      id
+      name
+      email
+    }
+    requester {
+      id
+      name
+      email
+    }
+  }
+}

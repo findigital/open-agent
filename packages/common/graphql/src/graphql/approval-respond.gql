@@ -1,0 +1,8 @@
+mutation RespondToApproval($approvalId: ID!, $status: ApprovalStatus!, $feedback: String) {
+  respondToApproval(approvalId: $approvalId, status: $status, feedback: $feedback) {
+    id
+    status
+    respondedAt
+    feedback
+  }
+}

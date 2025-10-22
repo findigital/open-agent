@@ -4,9 +4,10 @@ import {
   Input,
   Loading,
   ScrollableContainer,
+  Select,
   toast,
 } from '@afk/component';
-import { ArrowLeftIcon, CheckIcon, CommentIcon, DownloadIcon, MoreVerticalIcon } from '@blocksuite/icons/rc';
+import { ArrowLeftIcon, CheckIcon, CommentIcon, DownloadIcon, MoreVerticalIcon, UserIcon } from '@blocksuite/icons/rc';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -283,6 +284,346 @@ const ExportModal = ({
           <Button onClick={handleExport} loading={exporting}>
             <DownloadIcon className="w-4 h-4 mr-2" />
             Export {format.toUpperCase()}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface Approval {
+  id: string;
+  status: 'pending' | 'approved' | 'rejected' | 'changes_requested';
+  requestedAt: string;
+  respondedAt?: string;
+  feedback?: string;
+  approver: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  requester: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+const ApprovalModal = ({
+  proposalId,
+  proposalTitle,
+  workspaceMembers,
+  onClose,
+}: {
+  proposalId: string;
+  proposalTitle: string;
+  workspaceMembers: Array<{ id: string; name: string; email: string }>;
+  onClose: () => void;
+}) => {
+  const [approvals, setApprovals] = useState<Approval[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedApprover, setSelectedApprover] = useState('');
+  const [requesting, setRequesting] = useState(false);
+  const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  const [responseStatus, setResponseStatus] = useState<'approved' | 'rejected' | 'changes_requested'>('approved');
+  const [responseFeedback, setResponseFeedback] = useState('');
+
+  const loadApprovals = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await gql({
+        query: `
+          query GetProposalApprovals($proposalId: ID!) {
+            proposalApprovals(proposalId: $proposalId) {
+              id
+              status
+              requestedAt
+              respondedAt
+              feedback
+              approver {
+                id
+                name
+                email
+              }
+              requester {
+                id
+                name
+                email
+              }
+            }
+          }
+        `,
+        variables: { proposalId },
+      });
+
+      if (res.data?.proposalApprovals) {
+        setApprovals(res.data.proposalApprovals);
+      }
+    } catch (error) {
+      console.error('Failed to load approvals:', error);
+      toast.error('Failed to load approvals');
+    } finally {
+      setLoading(false);
+    }
+  }, [proposalId]);
+
+  useEffect(() => {
+    loadApprovals();
+  }, [loadApprovals]);
+
+  const handleRequestApproval = async () => {
+    if (!selectedApprover) return;
+
+    setRequesting(true);
+    try {
+      await gql({
+        query: `
+          mutation RequestApproval($input: RequestApprovalInput!) {
+            requestApproval(input: $input) {
+              id
+              status
+            }
+          }
+        `,
+        variables: {
+          input: {
+            proposalId,
+            approverId: selectedApprover,
+          },
+        },
+      });
+
+      toast.success('Approval request sent');
+      setSelectedApprover('');
+      loadApprovals();
+    } catch (error) {
+      console.error('Failed to request approval:', error);
+      toast.error('Failed to request approval');
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  const handleRespond = async (approvalId: string) => {
+    try {
+      await gql({
+        query: `
+          mutation RespondToApproval($approvalId: ID!, $status: ApprovalStatus!, $feedback: String) {
+            respondToApproval(approvalId: $approvalId, status: $status, feedback: $feedback) {
+              id
+              status
+            }
+          }
+        `,
+        variables: {
+          approvalId,
+          status: responseStatus.toUpperCase(),
+          feedback: responseFeedback.trim() || undefined,
+        },
+      });
+
+      toast.success(`Approval ${responseStatus}`);
+      setRespondingTo(null);
+      setResponseFeedback('');
+      loadApprovals();
+    } catch (error) {
+      console.error('Failed to respond to approval:', error);
+      toast.error('Failed to respond to approval');
+    }
+  };
+
+  const statusColors = {
+    pending: 'bg-yellow-100 text-yellow-700',
+    approved: 'bg-green-100 text-green-700',
+    rejected: 'bg-red-100 text-red-700',
+    changes_requested: 'bg-orange-100 text-orange-700',
+  };
+
+  const statusLabels = {
+    pending: 'Pending',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    changes_requested: 'Changes Requested',
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <h2 className="text-xl font-bold mb-4">Approval Workflow</h2>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Request approval for "{proposalTitle}" before submission.
+        </p>
+
+        {/* Request New Approval */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+          <h3 className="font-semibold mb-3">Request Approval</h3>
+          <div className="flex gap-3">
+            <Select
+              value={selectedApprover}
+              onValueChange={setSelectedApprover}
+              placeholder="Select team member..."
+              className="flex-1"
+            >
+              {workspaceMembers.map(member => (
+                <option key={member.id} value={member.id}>
+                  {member.name} ({member.email})
+                </option>
+              ))}
+            </Select>
+            <Button
+              onClick={handleRequestApproval}
+              disabled={!selectedApprover || requesting}
+              loading={requesting}
+            >
+              <UserIcon className="w-4 h-4 mr-2" />
+              Request
+            </Button>
+          </div>
+        </div>
+
+        {/* Approvals List */}
+        <div>
+          <h3 className="font-semibold mb-3">
+            Approval Requests ({approvals.length})
+          </h3>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loading />
+            </div>
+          ) : approvals.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-8">
+              No approval requests yet. Request approval from a team member to get started.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {approvals.map(approval => (
+                <div
+                  key={approval.id}
+                  className="border border-gray-200 rounded-lg p-4 bg-white"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <UserIcon className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium">{approval.approver.name}</span>
+                        <span
+                          className={cn(
+                            'text-xs px-2 py-1 rounded-full font-medium',
+                            statusColors[approval.status]
+                          )}
+                        >
+                          {statusLabels[approval.status]}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Requested by {approval.requester.name} on{' '}
+                        {dayjs(approval.requestedAt).format('MMM D, YYYY [at] h:mm A')}
+                      </p>
+                      {approval.respondedAt && (
+                        <p className="text-xs text-gray-500">
+                          Responded on {dayjs(approval.respondedAt).format('MMM D, YYYY [at] h:mm A')}
+                        </p>
+                      )}
+                    </div>
+
+                    {approval.status === 'pending' && (
+                      <Button
+                        size="small"
+                        onClick={() => setRespondingTo(approval.id)}
+                      >
+                        Respond
+                      </Button>
+                    )}
+                  </div>
+
+                  {approval.feedback && (
+                    <div className="mt-2 p-3 bg-gray-50 rounded text-sm">
+                      <p className="font-medium text-gray-700 mb-1">Feedback:</p>
+                      <p className="text-gray-600">{approval.feedback}</p>
+                    </div>
+                  )}
+
+                  {/* Response Form */}
+                  {respondingTo === approval.id && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <h4 className="font-medium mb-3">Provide Your Response</h4>
+
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setResponseStatus('approved')}
+                            className={cn(
+                              'flex-1 py-2 px-3 rounded text-sm font-medium transition-all',
+                              responseStatus === 'approved'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-white border border-gray-300 text-gray-700 hover:border-green-600'
+                            )}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => setResponseStatus('changes_requested')}
+                            className={cn(
+                              'flex-1 py-2 px-3 rounded text-sm font-medium transition-all',
+                              responseStatus === 'changes_requested'
+                                ? 'bg-orange-600 text-white'
+                                : 'bg-white border border-gray-300 text-gray-700 hover:border-orange-600'
+                            )}
+                          >
+                            Request Changes
+                          </button>
+                          <button
+                            onClick={() => setResponseStatus('rejected')}
+                            className={cn(
+                              'flex-1 py-2 px-3 rounded text-sm font-medium transition-all',
+                              responseStatus === 'rejected'
+                                ? 'bg-red-600 text-white'
+                                : 'bg-white border border-gray-300 text-gray-700 hover:border-red-600'
+                            )}
+                          >
+                            Reject
+                          </button>
+                        </div>
+
+                        <textarea
+                          value={responseFeedback}
+                          onChange={e => setResponseFeedback(e.target.value)}
+                          placeholder="Add feedback (optional)..."
+                          className="w-full h-20 p-2 border border-gray-300 rounded text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="secondary"
+                            size="small"
+                            onClick={() => {
+                              setRespondingTo(null);
+                              setResponseFeedback('');
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="small"
+                            onClick={() => handleRespond(approval.id)}
+                          >
+                            Submit Response
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end mt-6">
+          <Button variant="secondary" onClick={onClose}>
+            Close
           </Button>
         </div>
       </div>
@@ -611,6 +952,7 @@ export const ProposalEditor = () => {
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -761,6 +1103,14 @@ export const ProposalEditor = () => {
             </div>
             <div className="flex items-center gap-2">
               <Button
+                onClick={() => setShowApprovalModal(true)}
+                variant="secondary"
+                size="small"
+              >
+                <UserIcon className="w-4 h-4 mr-2" />
+                Approvals
+              </Button>
+              <Button
                 onClick={() => setShowExportModal(true)}
                 variant="secondary"
                 size="small"
@@ -844,6 +1194,16 @@ export const ProposalEditor = () => {
           proposalId={currentProposal.id}
           proposalTitle={currentProposal.title}
           onClose={() => setShowExportModal(false)}
+        />
+      )}
+
+      {/* Approval Modal */}
+      {showApprovalModal && currentProposal.workspace && (
+        <ApprovalModal
+          proposalId={currentProposal.id}
+          proposalTitle={currentProposal.title}
+          workspaceMembers={currentProposal.workspace.members || []}
+          onClose={() => setShowApprovalModal(false)}
         />
       )}
     </div>

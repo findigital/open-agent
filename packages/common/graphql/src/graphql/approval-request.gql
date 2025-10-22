@@ -1,0 +1,12 @@
+mutation RequestApproval($input: RequestApprovalInput!) {
+  requestApproval(input: $input) {
+    id
+    status
+    requestedAt
+    approver {
+      id
+      name
+      email
+    }
+  }
+}
