@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../base/prisma/prisma.service';
 import { OrganizationService } from '../organization/organization.service';
+import { UpdateWorkspaceInput } from './dto/update-workspace.input';
 import { Workspace } from '@prisma/client';
 
 @Injectable()
@@ -36,7 +37,10 @@ export class WorkspaceService {
     });
   }
 
-  async findByOrganization(organizationId: string): Promise<Workspace[]> {
+  async findByOrganization(organizationId: string, userId: string): Promise<Workspace[]> {
+    // Check if user has access to organization
+    await this.organizationService.checkPermission(organizationId, userId, ['owner', 'admin', 'member', 'viewer']);
+
     return this.prisma.workspace.findMany({
       where: { organizationId },
       include: {
@@ -63,7 +67,7 @@ export class WorkspaceService {
     });
   }
 
-  async update(id: string, userId: string, name?: string, description?: string): Promise<Workspace> {
+  async update(id: string, userId: string, input: UpdateWorkspaceInput): Promise<Workspace> {
     const workspace = await this.findOne(id);
     if (!workspace) {
       throw new NotFoundException('Workspace not found');
@@ -73,7 +77,10 @@ export class WorkspaceService {
 
     return this.prisma.workspace.update({
       where: { id },
-      data: { name, description },
+      data: {
+        name: input.name,
+        description: input.description,
+      },
     });
   }
 
@@ -99,5 +106,23 @@ export class WorkspaceService {
     }
 
     return this.organizationService.isMember(workspace.organizationId, userId);
+  }
+
+  /**
+   * Get count of proposals in workspace
+   */
+  async getProposalCount(workspaceId: string): Promise<number> {
+    return this.prisma.proposal.count({
+      where: { workspaceId },
+    });
+  }
+
+  /**
+   * Get count of templates in workspace
+   */
+  async getTemplateCount(workspaceId: string): Promise<number> {
+    return this.prisma.proposalTemplate.count({
+      where: { workspaceId },
+    });
   }
 }
