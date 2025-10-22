@@ -225,9 +225,17 @@ export const ProposalsDashboard = () => {
               <p className="text-sm text-gray-600 mt-1">{currentOrganization.name}</p>
             )}
           </div>
-          <Link to="/proposals/new">
-            <Button>New Proposal</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link to="/proposals/grants">
+              <Button variant="secondary">Find Grants</Button>
+            </Link>
+            <Link to="/proposals/documents">
+              <Button variant="secondary">Documents</Button>
+            </Link>
+            <Link to="/proposals/new">
+              <Button>New Proposal</Button>
+            </Link>
+          </div>
         </div>
 
         {/* Workspace & Status Selectors */}

@@ -18,7 +18,7 @@ import { MagicLinkPage } from './pages/magic-link';
 import { OAuthCallbackPage } from './pages/oauth-callback';
 import { oauthLoginLoader, OAuthLoginPage } from './pages/oauth-login';
 import { OnboardingPage } from './pages/onboarding';
-import { ProposalsDashboard, ProposalEditor, CreateProposal, DocumentsLibrary } from './pages/proposals';
+import { ProposalsDashboard, ProposalEditor, CreateProposal, DocumentsLibrary, GrantsSearch } from './pages/proposals';
 import { redirectProxyLoader, RedirectProxyPage } from './pages/redirect';
 import { SignInPage } from './pages/sign-in';
 import { useOnboardingStore } from './store/onboarding';
@@ -55,6 +55,7 @@ const ProposalsPage = () => {
         <Route index element={<ProposalsDashboard />} />
         <Route path="new" element={<CreateProposal />} />
         <Route path="documents" element={<DocumentsLibrary />} />
+        <Route path="grants" element={<GrantsSearch />} />
         <Route path=":id" element={<ProposalEditor />} />
       </Route>
     </Routes>

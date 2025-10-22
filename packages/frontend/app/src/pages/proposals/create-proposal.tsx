@@ -1,8 +1,8 @@
 import { Button, Input, Loading, Select, toast } from '@afk/component';
 import { ArrowLeftIcon } from '@blocksuite/icons/rc';
 import dayjs from 'dayjs';
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import { cn } from '@/lib/utils';
 import { gql } from '@/lib/gql';
@@ -84,6 +84,7 @@ const TemplateCard = ({
 
 export const CreateProposal = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentOrganization, currentWorkspaceId } = useProposalsStore();
 
   const [step, setStep] = useState<'template' | 'details'>('template');
@@ -97,6 +98,14 @@ export const CreateProposal = () => {
   const [grantId, setGrantId] = useState('');
   const [requestedAmount, setRequestedAmount] = useState('');
   const [dueDate, setDueDate] = useState('');
+
+  // Pre-populate grantId from URL if provided
+  useEffect(() => {
+    const grantIdFromUrl = searchParams.get('grantId');
+    if (grantIdFromUrl) {
+      setGrantId(grantIdFromUrl);
+    }
+  }, [searchParams]);
 
   // Load templates on mount
   useState(() => {
