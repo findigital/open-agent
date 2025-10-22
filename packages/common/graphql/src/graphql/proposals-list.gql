@@ -1,0 +1,29 @@
+query GetProposalsList($workspaceId: ID!, $status: ProposalStatus) {
+  proposals(workspaceId: $workspaceId, status: $status) {
+    id
+    title
+    status
+    requestedAmount
+    dueDate
+    createdAt
+    updatedAt
+    workspace {
+      id
+      name
+    }
+    template {
+      id
+      name
+    }
+    grant {
+      id
+      title
+      funderName
+    }
+    sections {
+      id
+      title
+      completedAt
+    }
+  }
+}

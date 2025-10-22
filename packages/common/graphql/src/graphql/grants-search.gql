@@ -1,0 +1,16 @@
+query SearchGrants($keywords: [String!], $category: [GrantCategory!], $minAmount: Float, $maxAmount: Float, $openOnly: Boolean, $limit: Int, $offset: Int) {
+  searchGrants(keywords: $keywords, category: $category, minAmount: $minAmount, maxAmount: $maxAmount, openOnly: $openOnly, limit: $limit, offset: $offset) {
+    id
+    title
+    funderName
+    description
+    eligibility
+    category
+    keywords
+    minAmount
+    maxAmount
+    openDate
+    closeDate
+    url
+  }
+}

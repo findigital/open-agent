@@ -1,0 +1,13 @@
+query GetDocuments($organizationId: ID!, $type: DocumentType) {
+  documentsByOrganization(organizationId: $organizationId, type: $type) {
+    id
+    title
+    type
+    content
+    metadata
+    tags
+    uploadedBy
+    createdAt
+    updatedAt
+  }
+}

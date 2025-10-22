@@ -1,0 +1,10 @@
+mutation GenerateProposalSection($input: ProposalGenerationInput!) {
+  generateProposalSection(input: $input) {
+    sectionId
+    content
+    wordCount
+    confidence
+    suggestions
+    sources
+  }
+}

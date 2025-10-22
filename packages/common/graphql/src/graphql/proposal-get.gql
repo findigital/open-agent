@@ -1,0 +1,76 @@
+query GetProposal($id: ID!) {
+  proposal(id: $id) {
+    id
+    title
+    clientName
+    status
+    requestedAmount
+    dueDate
+    submittedAt
+    createdAt
+    updatedAt
+    workspace {
+      id
+      name
+      organization {
+        id
+        name
+      }
+    }
+    template {
+      id
+      name
+      category
+    }
+    grant {
+      id
+      title
+      funderName
+      description
+      eligibility
+      minAmount
+      maxAmount
+      closeDate
+    }
+    sections {
+      id
+      title
+      type
+      content
+      order
+      wordLimit
+      completedAt
+    }
+    approvals {
+      id
+      status
+      approver {
+        id
+        name
+        email
+      }
+      comment
+      dueDate
+      createdAt
+      decidedAt
+    }
+    comments {
+      id
+      content
+      author {
+        id
+        name
+      }
+      sectionId
+      resolved
+      createdAt
+    }
+    versions {
+      id
+      versionNumber
+      createdAt
+      createdBy
+      comment
+    }
+  }
+}

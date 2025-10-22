@@ -18,6 +18,7 @@ import { MagicLinkPage } from './pages/magic-link';
 import { OAuthCallbackPage } from './pages/oauth-callback';
 import { oauthLoginLoader, OAuthLoginPage } from './pages/oauth-login';
 import { OnboardingPage } from './pages/onboarding';
+import { ProposalsDashboard, ProposalEditor } from './pages/proposals';
 import { redirectProxyLoader, RedirectProxyPage } from './pages/redirect';
 import { SignInPage } from './pages/sign-in';
 import { useOnboardingStore } from './store/onboarding';
@@ -42,6 +43,17 @@ const LibraryPage = () => {
       <Route element={<OALayout />}>
         <Route path="/" element={<LibraryDashboard />} />
         <Route path="/:id" element={<DocPage />} />
+      </Route>
+    </Routes>
+  );
+};
+
+const ProposalsPage = () => {
+  return (
+    <Routes>
+      <Route element={<OALayout />}>
+        <Route index element={<ProposalsDashboard />} />
+        <Route path=":id" element={<ProposalEditor />} />
       </Route>
     </Routes>
   );
@@ -80,6 +92,14 @@ function App() {
           element={
             <AuthGuard>
               <LibraryPage />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/proposals/*"
+          element={
+            <AuthGuard>
+              <ProposalsPage />
             </AuthGuard>
           }
         />

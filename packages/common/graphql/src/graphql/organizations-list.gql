@@ -1,0 +1,24 @@
+query GetOrganizations {
+  myOrganizations {
+    id
+    name
+    mission
+    description
+    website
+    members {
+      id
+      user {
+        id
+        name
+        email
+      }
+      role
+    }
+    workspaces {
+      id
+      name
+      description
+    }
+    createdAt
+  }
+}

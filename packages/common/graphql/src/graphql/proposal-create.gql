@@ -1,0 +1,21 @@
+mutation CreateProposal($input: CreateProposalInput!) {
+  createProposal(input: $input) {
+    id
+    title
+    status
+    workspace {
+      id
+      name
+    }
+    template {
+      id
+      name
+    }
+    sections {
+      id
+      title
+      type
+      order
+    }
+  }
+}
