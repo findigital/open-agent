@@ -78,6 +78,7 @@ const SidebarContent = () => {
   const { pathname } = useLocation();
   const inChats = pathname === '/chats';
   const inLibrary = pathname.startsWith('/library');
+  const inProposals = pathname.startsWith('/proposals');
 
   return (
     <div className="size-full flex flex-col">
@@ -91,6 +92,14 @@ const SidebarContent = () => {
           >
             <EditIcon className={styles.hoverableIcon} />
             <div className={styles.hoverableLabel}>New Chat</div>
+          </li>
+        </Link>
+        <Link to="/proposals">
+          <li
+            className={cn(styles.hoverableItem, inProposals && styles.activeItem)}
+          >
+            <PageIcon className={styles.hoverableIcon} />
+            <div className={styles.hoverableLabel}>Proposals</div>
           </li>
         </Link>
         <Link to="/library">
