@@ -1,0 +1,18 @@
+query GetRFP($id: ID!) {
+  rfp(id: $id) {
+    id
+    title
+    funderName
+    dueDate
+    fileName
+    fileSize
+    status
+    parsedQuestions
+    createdAt
+    createdBy {
+      id
+      name
+      email
+    }
+  }
+}

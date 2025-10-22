@@ -1,0 +1,12 @@
+mutation UploadRFP($input: UploadRFPInput!) {
+  uploadRFP(input: $input) {
+    id
+    title
+    funderName
+    dueDate
+    fileName
+    fileSize
+    status
+    createdAt
+  }
+}

@@ -1,0 +1,17 @@
+mutation GenerateTemplateFromRFP($rfpId: ID!) {
+  generateTemplateFromRFP(rfpId: $rfpId) {
+    id
+    name
+    description
+    category
+    sections {
+      id
+      title
+      type
+      order
+      wordLimit
+      required
+      aiPromptGuidance
+    }
+  }
+}

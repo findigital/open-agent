@@ -255,6 +255,9 @@ export const ProposalsDashboard = () => {
             )}
           </div>
           <div className="flex gap-2">
+            <Link to="/proposals/import-rfp">
+              <Button variant="secondary">Import RFP</Button>
+            </Link>
             <Link to="/proposals/templates">
               <Button variant="secondary">Templates</Button>
             </Link>
