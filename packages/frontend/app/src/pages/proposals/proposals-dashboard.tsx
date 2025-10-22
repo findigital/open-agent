@@ -187,6 +187,35 @@ export const ProposalsDashboard = () => {
     return proposals.filter(p => p.status === statusFilter);
   }, [proposals, statusFilter]);
 
+  // Analytics calculations
+  const analytics = useMemo(() => {
+    const statusCounts = proposals.reduce((acc, p) => {
+      acc[p.status] = (acc[p.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const submitted = (statusCounts.submitted || 0) + (statusCounts.awarded || 0) + (statusCounts.rejected || 0);
+    const awarded = statusCounts.awarded || 0;
+    const successRate = submitted > 0 ? Math.round((awarded / submitted) * 100) : 0;
+
+    const upcomingDeadlines = proposals
+      .filter(p => p.dueDate && dayjs(p.dueDate).isAfter(dayjs()) && dayjs(p.dueDate).isBefore(dayjs().add(7, 'day')))
+      .sort((a, b) => dayjs(a.dueDate).diff(dayjs(b.dueDate)));
+
+    const totalRequested = proposals.reduce((sum, p) => sum + (p.requestedAmount || 0), 0);
+    const totalAwarded = proposals
+      .filter(p => p.status === 'awarded')
+      .reduce((sum, p) => sum + (p.requestedAmount || 0), 0);
+
+    return {
+      statusCounts,
+      successRate,
+      upcomingDeadlines,
+      totalRequested,
+      totalAwarded,
+    };
+  }, [proposals]);
+
   const groupedProposals = useMemo(() => {
     const groups = {
       today: [] as Proposal[],
@@ -280,6 +309,70 @@ export const ProposalsDashboard = () => {
           </Select>
         </div>
       </div>
+
+      {/* Analytics Section */}
+      {proposals.length > 0 && !loading && (
+        <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Proposals */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Total Proposals</h3>
+                <PageIcon className="w-5 h-5 text-gray-400" />
+              </div>
+              <div className="text-2xl font-bold">{proposals.length}</div>
+              <div className="flex gap-2 mt-2 flex-wrap">
+                {Object.entries(analytics.statusCounts).map(([status, count]) => (
+                  <span key={status} className="text-xs text-gray-500">
+                    {statusLabels[status as keyof typeof statusLabels]}: {count}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Success Rate */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Success Rate</h3>
+                <span className="text-2xl">📊</span>
+              </div>
+              <div className="text-2xl font-bold text-green-600">{analytics.successRate}%</div>
+              <p className="text-xs text-gray-500 mt-2">
+                {analytics.statusCounts.awarded || 0} awarded of{' '}
+                {(analytics.statusCounts.submitted || 0) + (analytics.statusCounts.awarded || 0) + (analytics.statusCounts.rejected || 0)} submitted
+              </p>
+            </div>
+
+            {/* Funding Stats */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Total Funding</h3>
+                <span className="text-2xl">💰</span>
+              </div>
+              <div className="text-2xl font-bold">${(analytics.totalAwarded / 1000).toFixed(0)}K</div>
+              <p className="text-xs text-gray-500 mt-2">
+                ${(analytics.totalRequested / 1000).toFixed(0)}K requested
+              </p>
+            </div>
+
+            {/* Upcoming Deadlines */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Next 7 Days</h3>
+                <span className="text-2xl">⏰</span>
+              </div>
+              <div className="text-2xl font-bold text-orange-600">
+                {analytics.upcomingDeadlines.length}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                {analytics.upcomingDeadlines.length === 0
+                  ? 'No upcoming deadlines'
+                  : `Next: ${dayjs(analytics.upcomingDeadlines[0].dueDate).format('MMM D')}`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
