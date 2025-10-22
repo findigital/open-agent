@@ -1,0 +1,489 @@
+# Proposal Writing SaaS - GraphQL Schema
+# This schema extends the existing Open-Agent GraphQL API
+
+# ============================================================================
+# Enums
+# ============================================================================
+
+enum ProposalStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SUBMITTED
+  AWARDED
+  REJECTED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+# ============================================================================
+# Organization Types
+# ============================================================================
+
+type Organization {
+  id: ID!
+  name: String!
+  slug: String!
+  taxId: String
+  type: String!
+  mission: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  # Relations
+  workspaces: [Workspace!]!
+  members: [OrganizationMember!]!
+  documents: [OrganizationDocument!]!
+}
+
+type OrganizationMember {
+  id: ID!
+  organizationId: ID!
+  userId: ID!
+  role: OrganizationRole!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  # Relations
+  organization: Organization!
+  user: User!
+}
+
+type OrganizationDocument {
+  id: ID!
+  organizationId: ID!
+  title: String!
+  type: String!
+  content: String!
+  metadata: JSON
+  uploadedBy: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  # Relations
+  organization: Organization!
+  embeddingsCount: Int!
+}
+
+# ============================================================================
+# Workspace Types
+# ============================================================================
+
+type Workspace {
+  id: ID!
+  organizationId: ID!
+  name: String!
+  description: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  # Relations
+  organization: Organization!
+  proposals: [Proposal!]!
+  templates: [ProposalTemplate!]!
+
+  # Computed
+  proposalCount: Int!
+  templateCount: Int!
+}
+
+# ============================================================================
+# Proposal Types
+# ============================================================================
+
+type Proposal {
+  id: ID!
+  workspaceId: ID!
+  templateId: ID
+  title: String!
+  clientName: String
+  grantId: String
+  status: ProposalStatus!
+  dueDate: DateTime
+  submittedAt: DateTime
+  decisionDate: DateTime
+  requestedAmount: Float
+  awardedAmount: Float
+  metadata: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: ID!
+
+  # Relations
+  workspace: Workspace!
+  template: ProposalTemplate
+  sections: [ProposalSection!]!
+  versions: [ProposalVersion!]!
+  approvals: [ProposalApproval!]!
+  comments: [ProposalComment!]!
+  aiSessions: [ProposalAiSession!]!
+
+  # Computed
+  wordCount: Int!
+  completionPercentage: Float!
+  pendingApprovals: Int!
+}
+
+type ProposalSection {
+  id: ID!
+  proposalId: ID!
+  parentId: ID
+  title: String!
+  type: String!
+  content: String!
+  order: Int!
+  wordLimit: Int
+  assignedTo: ID
+  completedAt: DateTime
+  metadata: JSON!
+
+  # Relations
+  proposal: Proposal!
+  parent: ProposalSection
+  children: [ProposalSection!]!
+
+  # Computed
+  wordCount: Int!
+  isComplete: Boolean!
+}
+
+type ProposalTemplate {
+  id: ID!
+  workspaceId: ID!
+  name: String!
+  description: String
+  category: String!
+  isPublic: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  # Relations
+  workspace: Workspace!
+  sections: [TemplateSection!]!
+  proposalsUsing: [Proposal!]!
+
+  # Computed
+  usageCount: Int!
+}
+
+type TemplateSection {
+  id: ID!
+  templateId: ID!
+  parentId: ID
+  title: String!
+  description: String
+  type: String!
+  order: Int!
+  wordLimit: Int
+  required: Boolean!
+  promptGuidance: String
+  createdAt: DateTime!
+
+  # Relations
+  template: ProposalTemplate!
+  parent: TemplateSection
+  children: [TemplateSection!]!
+}
+
+type ProposalVersion {
+  id: ID!
+  proposalId: ID!
+  versionNumber: Int!
+  content: JSON!
+  createdBy: ID!
+  comment: String
+  createdAt: DateTime!
+
+  # Relations
+  proposal: Proposal!
+}
+
+type ProposalApproval {
+  id: ID!
+  proposalId: ID!
+  approverUserId: ID!
+  status: ApprovalStatus!
+  comment: String
+  respondedAt: DateTime
+  createdAt: DateTime!
+
+  # Relations
+  proposal: Proposal!
+  approver: User!
+}
+
+type ProposalComment {
+  id: ID!
+  proposalId: ID!
+  sectionId: ID
+  userId: ID!
+  content: String!
+  resolved: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  # Relations
+  proposal: Proposal!
+  user: User!
+}
+
+type ProposalAiSession {
+  id: ID!
+  proposalId: ID!
+  sessionId: ID!
+  sectionId: ID
+  purpose: String!
+  createdAt: DateTime!
+
+  # Relations
+  proposal: Proposal!
+  session: AiSession!
+}
+
+# ============================================================================
+# Grant Opportunity Types
+# ============================================================================
+
+type GrantOpportunity {
+  id: ID!
+  externalId: String
+  source: String!
+  title: String!
+  funderName: String!
+  description: String!
+  eligibility: String!
+  category: [String!]!
+  keywords: [String!]!
+  minAmount: Float
+  maxAmount: Float
+  openDate: DateTime
+  closeDate: DateTime
+  url: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# ============================================================================
+# Input Types
+# ============================================================================
+
+input CreateOrganizationInput {
+  name: String!
+  slug: String!
+  taxId: String
+  type: String!
+  mission: String
+}
+
+input UpdateOrganizationInput {
+  name: String
+  taxId: String
+  type: String
+  mission: String
+}
+
+input CreateWorkspaceInput {
+  organizationId: ID!
+  name: String!
+  description: String
+}
+
+input UpdateWorkspaceInput {
+  name: String
+  description: String
+}
+
+input CreateProposalInput {
+  workspaceId: ID!
+  templateId: ID
+  title: String!
+  clientName: String
+  grantId: String
+  dueDate: DateTime
+  requestedAmount: Float
+  metadata: JSON
+}
+
+input UpdateProposalInput {
+  title: String
+  clientName: String
+  grantId: String
+  dueDate: DateTime
+  submittedAt: DateTime
+  decisionDate: DateTime
+  requestedAmount: Float
+  awardedAmount: Float
+  metadata: JSON
+}
+
+input CreateProposalSectionInput {
+  proposalId: ID!
+  parentId: ID
+  title: String!
+  type: String!
+  content: String
+  order: Int!
+  wordLimit: Int
+  assignedTo: ID
+}
+
+input UpdateProposalSectionInput {
+  title: String
+  content: String
+  order: Int
+  wordLimit: Int
+  assignedTo: ID
+  completedAt: DateTime
+}
+
+input CreateProposalTemplateInput {
+  workspaceId: ID!
+  name: String!
+  description: String
+  category: String!
+  isPublic: Boolean
+}
+
+input AddProposalApprovalInput {
+  proposalId: ID!
+  approverUserId: ID!
+}
+
+input UpdateProposalApprovalInput {
+  status: ApprovalStatus!
+  comment: String
+}
+
+input CreateProposalCommentInput {
+  proposalId: ID!
+  sectionId: ID
+  content: String!
+}
+
+input SearchGrantsInput {
+  keywords: [String!]
+  category: [String!]
+  minAmount: Float
+  maxAmount: Float
+  openOnly: Boolean
+  limit: Int
+  offset: Int
+}
+
+# ============================================================================
+# Query Types
+# ============================================================================
+
+type Query {
+  # Organizations
+  organization(id: ID!): Organization
+  organizations: [Organization!]!
+  myOrganizations: [Organization!]!
+
+  # Workspaces
+  workspace(id: ID!): Workspace
+  workspaces(organizationId: ID!): [Workspace!]!
+  myWorkspaces: [Workspace!]!
+
+  # Proposals
+  proposal(id: ID!): Proposal
+  proposals(workspaceId: ID!, status: ProposalStatus): [Proposal!]!
+  myProposals(status: ProposalStatus): [Proposal!]!
+
+  # Templates
+  proposalTemplate(id: ID!): ProposalTemplate
+  proposalTemplates(workspaceId: ID, category: String, publicOnly: Boolean): [ProposalTemplate!]!
+
+  # Grants
+  grantOpportunity(id: ID!): GrantOpportunity
+  searchGrants(input: SearchGrantsInput!): [GrantOpportunity!]!
+
+  # Organization Documents
+  organizationDocument(id: ID!): OrganizationDocument
+  organizationDocuments(organizationId: ID!, type: String): [OrganizationDocument!]!
+}
+
+# ============================================================================
+# Mutation Types
+# ============================================================================
+
+type Mutation {
+  # Organizations
+  createOrganization(input: CreateOrganizationInput!): Organization!
+  updateOrganization(id: ID!, input: UpdateOrganizationInput!): Organization!
+  deleteOrganization(id: ID!): Boolean!
+
+  # Organization Members
+  addOrganizationMember(organizationId: ID!, userId: ID!, role: OrganizationRole!): OrganizationMember!
+  updateOrganizationMemberRole(id: ID!, role: OrganizationRole!): OrganizationMember!
+  removeOrganizationMember(id: ID!): Boolean!
+
+  # Workspaces
+  createWorkspace(input: CreateWorkspaceInput!): Workspace!
+  updateWorkspace(id: ID!, input: UpdateWorkspaceInput!): Workspace!
+  deleteWorkspace(id: ID!): Boolean!
+
+  # Proposals
+  createProposal(input: CreateProposalInput!): Proposal!
+  updateProposal(id: ID!, input: UpdateProposalInput!): Proposal!
+  deleteProposal(id: ID!): Boolean!
+  updateProposalStatus(id: ID!, status: ProposalStatus!): Proposal!
+
+  # Proposal Sections
+  createProposalSection(input: CreateProposalSectionInput!): ProposalSection!
+  updateProposalSection(id: ID!, input: UpdateProposalSectionInput!): ProposalSection!
+  deleteProposalSection(id: ID!): Boolean!
+  reorderProposalSections(proposalId: ID!, sectionIds: [ID!]!): [ProposalSection!]!
+
+  # Proposal Templates
+  createProposalTemplate(input: CreateProposalTemplateInput!): ProposalTemplate!
+  updateProposalTemplate(id: ID!, input: UpdateProposalInput!): ProposalTemplate!
+  deleteProposalTemplate(id: ID!): Boolean!
+  cloneProposalTemplate(id: ID!, workspaceId: ID!): ProposalTemplate!
+
+  # Proposal Versions
+  createProposalVersion(proposalId: ID!, comment: String): ProposalVersion!
+  restoreProposalVersion(versionId: ID!): Proposal!
+
+  # Proposal Approvals
+  addProposalApproval(input: AddProposalApprovalInput!): ProposalApproval!
+  updateProposalApproval(id: ID!, input: UpdateProposalApprovalInput!): ProposalApproval!
+
+  # Proposal Comments
+  createProposalComment(input: CreateProposalCommentInput!): ProposalComment!
+  resolveProposalComment(id: ID!): ProposalComment!
+  deleteProposalComment(id: ID!): Boolean!
+
+  # Organization Documents
+  uploadOrganizationDocument(organizationId: ID!, title: String!, type: String!, content: String!, metadata: JSON): OrganizationDocument!
+  updateOrganizationDocument(id: ID!, title: String, type: String, content: String): OrganizationDocument!
+  deleteOrganizationDocument(id: ID!): Boolean!
+
+  # AI Proposal Generation
+  generateProposalSection(sectionId: ID!, context: JSON): ProposalSection!
+  improveProposalSection(sectionId: ID!, feedback: String): ProposalSection!
+  checkProposalCompliance(proposalId: ID!): JSON!
+}
+
+# ============================================================================
+# Subscription Types (for real-time collaboration)
+# ============================================================================
+
+type Subscription {
+  proposalUpdated(proposalId: ID!): Proposal!
+  sectionUpdated(proposalId: ID!): ProposalSection!
+  commentAdded(proposalId: ID!): ProposalComment!
+  approvalUpdated(proposalId: ID!): ProposalApproval!
+}
