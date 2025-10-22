@@ -42,6 +42,15 @@ import { CaptchaModule } from './plugins/captcha';
 import { CopilotModule } from './plugins/copilot';
 import { GCloudModule } from './plugins/gcloud';
 import { OAuthModule } from './plugins/oauth';
+import { OrganizationModule } from './modules/organization/organization.module';
+import { WorkspaceModule } from './modules/workspace/workspace.module';
+import { ProposalModule } from './modules/proposal/proposal.module';
+import { TemplateModule } from './modules/template/template.module';
+import { GrantModule } from './modules/grant/grant.module';
+import { DocumentModule } from './modules/document/document.module';
+import { ApprovalModule } from './modules/approval/approval.module';
+import { CommentModule } from './modules/comment/comment.module';
+import { AiModule } from './modules/ai/ai.module';
 
 export const FunctionalityModules = [
   ClsModule.forRoot({
@@ -143,6 +152,19 @@ export function buildAppModule(env: Env) {
 
     // business modules
     .use(ServerConfigModule, FeatureModule, QuotaModule, MailModule)
+
+    // proposal saas modules
+    .use(
+      OrganizationModule,
+      WorkspaceModule,
+      ProposalModule,
+      TemplateModule,
+      GrantModule,
+      DocumentModule,
+      ApprovalModule,
+      CommentModule,
+      AiModule
+    )
 
     // graphql server only
     .useIf(
