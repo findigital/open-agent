@@ -7,10 +7,11 @@ import {
 } from '@afk/component';
 import { ArrowLeftIcon, CheckIcon, MoreVerticalIcon } from '@blocksuite/icons/rc';
 import dayjs from 'dayjs';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import { cn } from '@/lib/utils';
+import { gql } from '@/lib/gql';
 import { useProposalsStore } from '@/store/proposals';
 
 import { AutoSidebarPadding } from '../layout/auto-sidebar-padding';
@@ -39,14 +40,65 @@ interface SectionEditorProps {
 
 const SectionEditor = ({ section, proposalId, onGenerate, generating }: SectionEditorProps) => {
   const [content, setContent] = useState(section.content);
-  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wordCount = content.trim().split(/\s+/).length;
   const isOverLimit = section.wordLimit && wordCount > section.wordLimit;
 
-  // Auto-save logic would go here
+  // Update local content when section changes
   useEffect(() => {
     setContent(section.content);
+    setSaveStatus('saved');
   }, [section.content]);
+
+  // Auto-save with debounce
+  useEffect(() => {
+    // Don't auto-save if content hasn't changed
+    if (content === section.content) return;
+
+    setSaveStatus('unsaved');
+
+    // Clear previous timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Set new timeout for auto-save (2 seconds after user stops typing)
+    saveTimeoutRef.current = setTimeout(async () => {
+      setSaveStatus('saving');
+
+      try {
+        await gql({
+          query: `
+            mutation UpdateProposalSection($sectionId: ID!, $content: String!) {
+              updateProposalSection(sectionId: $sectionId, content: $content) {
+                id
+                content
+                updatedAt
+              }
+            }
+          `,
+          variables: {
+            sectionId: section.id,
+            content: content,
+          },
+        });
+
+        setSaveStatus('saved');
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+        setSaveStatus('unsaved');
+        toast.error('Failed to save changes');
+      }
+    }, 2000);
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [content, section.content, section.id]);
 
   return (
     <div className="border border-gray-200 rounded-lg p-6 bg-white">
@@ -87,13 +139,26 @@ const SectionEditor = ({ section, proposalId, onGenerate, generating }: SectionE
         style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
       />
 
-      {/* Save Status */}
-      {isSaving && (
-        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-          <Loading className="text-sm" />
-          Saving...
+      {/* Save Status Indicator */}
+      <div className="flex items-center justify-between mt-2">
+        <div className="flex items-center gap-2 text-xs">
+          {saveStatus === 'saving' && (
+            <>
+              <Loading className="text-sm" />
+              <span className="text-gray-500">Saving...</span>
+            </>
+          )}
+          {saveStatus === 'saved' && (
+            <>
+              <CheckIcon className="w-4 h-4 text-green-600" />
+              <span className="text-gray-500">All changes saved</span>
+            </>
+          )}
+          {saveStatus === 'unsaved' && (
+            <span className="text-orange-600 font-medium">Unsaved changes</span>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
