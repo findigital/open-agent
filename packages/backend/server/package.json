@@ -184,5 +184,8 @@
       "**/*.spec.ts",
       "**/*.e2e.ts"
     ]
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   }
 }
