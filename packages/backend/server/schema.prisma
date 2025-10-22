@@ -25,15 +25,18 @@ model User {
   registered      Boolean   @default(true)
   disabled        Boolean   @default(false)
 
-  features          UserFeature[]
-  connectedAccounts ConnectedAccount[]
-  sessions          UserSession[]
-  aiSessions        AiSession[]
-  appConfigs        AppConfig[]
-  createdAiJobs     AiJobs[]           @relation("createdAiJobs")
-  settings          UserSettings?
-  AiUserFiles       AiUserFiles[]
-  AiUserDocs        AiUserDocs[]
+  features            UserFeature[]
+  connectedAccounts   ConnectedAccount[]
+  sessions            UserSession[]
+  aiSessions          AiSession[]
+  appConfigs          AppConfig[]
+  createdAiJobs       AiJobs[]              @relation("createdAiJobs")
+  settings            UserSettings?
+  AiUserFiles         AiUserFiles[]
+  AiUserDocs          AiUserDocs[]
+  organizationMembers OrganizationMember[]
+  proposalApprovals   ProposalApproval[]
+  proposalComments    ProposalComment[]
 
   @@index([email])
   @@map("users")
@@ -216,11 +219,12 @@ model AiSession {
   // client custom metadata
   metadata String  @db.VarChar
 
-  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  prompt        AiPrompt              @relation(fields: [promptName], references: [name], onDelete: Cascade)
-  messages      AiSessionMessage[]
-  context       AiContext[]
-  chatEmbedding AiUserChatEmbedding[]
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt          AiPrompt              @relation(fields: [promptName], references: [name], onDelete: Cascade)
+  messages        AiSessionMessage[]
+  context         AiContext[]
+  chatEmbedding   AiUserChatEmbedding[]
+  proposalSessions ProposalAiSession[]
 
   @@index([promptName])
   @@index([userId])
@@ -424,4 +428,297 @@ model UserSettings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
+}
+
+// ============================================================================
+// Multi-tenancy & Proposal Management Models
+// ============================================================================
+
+model Organization {
+  id          String   @id @default(uuid()) @db.VarChar
+  name        String   @db.VarChar
+  slug        String   @unique @db.VarChar
+  taxId       String?  @map("tax_id") @db.VarChar
+  type        String   @default("nonprofit") @db.VarChar
+  mission     String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  workspaces   Workspace[]
+  members      OrganizationMember[]
+  documents    OrganizationDocument[]
+
+  @@index([slug])
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String   @id @default(uuid()) @db.VarChar
+  organizationId String   @map("organization_id") @db.VarChar
+  userId         String   @map("user_id") @db.VarChar
+  role           String   @default("member") @db.VarChar
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId])
+  @@map("organization_members")
+}
+
+model Workspace {
+  id             String   @id @default(uuid()) @db.VarChar
+  organizationId String   @map("organization_id") @db.VarChar
+  name           String   @db.VarChar
+  description    String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  proposals    Proposal[]
+  templates    ProposalTemplate[]
+
+  @@index([organizationId])
+  @@map("workspaces")
+}
+
+model OrganizationDocument {
+  id             String   @id @default(uuid()) @db.VarChar
+  organizationId String   @map("organization_id") @db.VarChar
+  title          String   @db.VarChar
+  type           String   @db.VarChar
+  content        String   @db.Text
+  metadata       Json     @default("{}") @db.JsonB
+  uploadedBy     String   @map("uploaded_by") @db.VarChar
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  embeddings   OrganizationDocEmbedding[]
+
+  @@index([organizationId, type])
+  @@index([organizationId])
+  @@map("organization_documents")
+}
+
+model OrganizationDocEmbedding {
+  id         String                      @id @default(uuid()) @db.VarChar
+  documentId String                      @map("document_id") @db.VarChar
+  chunk      Int                         @db.Integer
+  content    String                      @db.Text
+  embedding  Unsupported("vector(1024)")
+  createdAt  DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  document OrganizationDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunk])
+  @@index([embedding], map: "organization_doc_embeddings_idx")
+  @@map("organization_doc_embeddings")
+}
+
+enum ProposalStatus {
+  draft
+  in_review
+  approved
+  submitted
+  awarded
+  rejected
+}
+
+model Proposal {
+  id              String          @id @default(uuid()) @db.VarChar
+  workspaceId     String          @map("workspace_id") @db.VarChar
+  templateId      String?         @map("template_id") @db.VarChar
+  title           String          @db.VarChar
+  clientName      String?         @map("client_name") @db.VarChar
+  grantId         String?         @map("grant_id") @db.VarChar
+  status          ProposalStatus  @default(draft)
+  dueDate         DateTime?       @map("due_date") @db.Timestamptz(3)
+  submittedAt     DateTime?       @map("submitted_at") @db.Timestamptz(3)
+  decisionDate    DateTime?       @map("decision_date") @db.Timestamptz(3)
+  requestedAmount Decimal?        @map("requested_amount") @db.Decimal(12, 2)
+  awardedAmount   Decimal?        @map("awarded_amount") @db.Decimal(12, 2)
+  metadata        Json            @default("{}") @db.JsonB
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy       String          @map("created_by") @db.VarChar
+
+  workspace    Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  template     ProposalTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  sections     ProposalSection[]
+  versions     ProposalVersion[]
+  approvals    ProposalApproval[]
+  comments     ProposalComment[]
+  aiSessions   ProposalAiSession[]
+
+  @@index([workspaceId, status])
+  @@index([createdBy])
+  @@index([status])
+  @@map("proposals")
+}
+
+model ProposalSection {
+  id          String    @id @default(uuid()) @db.VarChar
+  proposalId  String    @map("proposal_id") @db.VarChar
+  parentId    String?   @map("parent_id") @db.VarChar
+  title       String    @db.VarChar
+  type        String    @db.VarChar
+  content     String    @default("") @db.Text
+  order       Int       @db.Integer
+  wordLimit   Int?      @map("word_limit") @db.Integer
+  assignedTo  String?   @map("assigned_to") @db.VarChar
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
+  metadata    Json      @default("{}") @db.JsonB
+
+  proposal Proposal          @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  parent   ProposalSection?  @relation("SectionHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children ProposalSection[] @relation("SectionHierarchy")
+
+  @@index([proposalId, order])
+  @@index([proposalId])
+  @@map("proposal_sections")
+}
+
+model ProposalTemplate {
+  id          String   @id @default(uuid()) @db.VarChar
+  workspaceId String   @map("workspace_id") @db.VarChar
+  name        String   @db.VarChar
+  description String?  @db.Text
+  category    String   @db.VarChar
+  isPublic    Boolean  @default(false) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sections  TemplateSection[]
+  proposals Proposal[]
+
+  @@index([workspaceId, category])
+  @@index([workspaceId])
+  @@map("proposal_templates")
+}
+
+model TemplateSection {
+  id             String   @id @default(uuid()) @db.VarChar
+  templateId     String   @map("template_id") @db.VarChar
+  parentId       String?  @map("parent_id") @db.VarChar
+  title          String   @db.VarChar
+  description    String?  @db.Text
+  type           String   @db.VarChar
+  order          Int      @db.Integer
+  wordLimit      Int?     @map("word_limit") @db.Integer
+  required       Boolean  @default(true)
+  promptGuidance String?  @map("prompt_guidance") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  template ProposalTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  parent   TemplateSection?  @relation("TemplateSectionHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children TemplateSection[] @relation("TemplateSectionHierarchy")
+
+  @@index([templateId, order])
+  @@index([templateId])
+  @@map("template_sections")
+}
+
+model ProposalVersion {
+  id            String   @id @default(uuid()) @db.VarChar
+  proposalId    String   @map("proposal_id") @db.VarChar
+  versionNumber Int      @map("version_number") @db.Integer
+  content       Json     @db.JsonB
+  createdBy     String   @map("created_by") @db.VarChar
+  comment       String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, versionNumber])
+  @@index([proposalId, createdAt])
+  @@index([proposalId])
+  @@map("proposal_versions")
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+  changes_requested
+}
+
+model ProposalApproval {
+  id             String          @id @default(uuid()) @db.VarChar
+  proposalId     String          @map("proposal_id") @db.VarChar
+  approverUserId String          @map("approver_user_id") @db.VarChar
+  status         ApprovalStatus  @default(pending)
+  comment        String?         @db.Text
+  respondedAt    DateTime?       @map("responded_at") @db.Timestamptz(3)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  approver User     @relation(fields: [approverUserId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, status])
+  @@index([proposalId])
+  @@index([approverUserId])
+  @@map("proposal_approvals")
+}
+
+model ProposalComment {
+  id         String    @id @default(uuid()) @db.VarChar
+  proposalId String    @map("proposal_id") @db.VarChar
+  sectionId  String?   @map("section_id") @db.VarChar
+  userId     String    @map("user_id") @db.VarChar
+  content    String    @db.Text
+  resolved   Boolean   @default(false)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, sectionId])
+  @@index([proposalId])
+  @@index([userId])
+  @@map("proposal_comments")
+}
+
+model ProposalAiSession {
+  id         String   @id @default(uuid()) @db.VarChar
+  proposalId String   @map("proposal_id") @db.VarChar
+  sessionId  String   @map("session_id") @db.VarChar
+  sectionId  String?  @map("section_id") @db.VarChar
+  purpose    String   @db.VarChar
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  proposal Proposal  @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  session  AiSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@index([sessionId])
+  @@map("proposal_ai_sessions")
+}
+
+model GrantOpportunity {
+  id          String    @id @default(uuid()) @db.VarChar
+  externalId  String?   @unique @map("external_id") @db.VarChar
+  source      String    @db.VarChar
+  title       String    @db.VarChar
+  funderName  String    @map("funder_name") @db.VarChar
+  description String    @db.Text
+  eligibility String    @db.Text
+  category    String[]  @db.VarChar
+  keywords    String[]  @db.VarChar
+  minAmount   Decimal?  @map("min_amount") @db.Decimal(12, 2)
+  maxAmount   Decimal?  @map("max_amount") @db.Decimal(12, 2)
+  openDate    DateTime? @map("open_date") @db.Timestamptz(3)
+  closeDate   DateTime? @map("close_date") @db.Timestamptz(3)
+  url         String?   @db.VarChar
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([source, closeDate])
+  @@index([category])
+  @@map("grant_opportunities")
 }
