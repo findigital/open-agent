@@ -722,3 +722,81 @@ model GrantOpportunity {
   @@index([category])
   @@map("grant_opportunities")
 }
+
+// ============================================================================
+// Budget Management Models
+// ============================================================================
+
+model ProposalBudget {
+  id                String   @id @default(uuid()) @db.VarChar
+  proposalId        String   @unique @map("proposal_id") @db.VarChar
+  lineItems         Json     @db.JsonB
+  totalDirectCosts  Decimal  @map("total_direct_costs") @db.Decimal(12, 2)
+  indirectCosts     Decimal  @map("indirect_costs") @db.Decimal(12, 2)
+  indirectRate      Decimal  @map("indirect_rate") @db.Decimal(5, 4)
+  totalCosts        Decimal  @map("total_costs") @db.Decimal(12, 2)
+  narrative         String?  @db.Text
+  status            String   @default("draft") @db.VarChar
+  createdBy         String   @map("created_by") @db.VarChar
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([proposalId])
+  @@map("proposal_budgets")
+}
+
+model BudgetTemplate {
+  id             String   @id @default(uuid()) @db.VarChar
+  organizationId String   @map("organization_id") @db.VarChar
+  name           String   @db.VarChar
+  description    String?  @db.Text
+  category       String   @db.VarChar
+  lineItems      Json     @db.JsonB
+  isPublic       Boolean  @default(false) @map("is_public")
+  usageCount     Int      @default(0) @map("usage_count") @db.Integer
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([organizationId, category])
+  @@index([category])
+  @@map("budget_templates")
+}
+
+model OrganizationFinancials {
+  id                    String   @id @default(uuid()) @db.VarChar
+  organizationId        String   @unique @map("organization_id") @db.VarChar
+  salaryRanges          Json     @map("salary_ranges") @db.JsonB
+  fringeBenefitRate     Decimal  @map("fringe_benefit_rate") @db.Decimal(5, 4)
+  indirectCostRate      Decimal? @map("indirect_cost_rate") @db.Decimal(5, 4)
+  indirectCostRateType  String?  @default("negotiated") @map("indirect_cost_rate_type") @db.VarChar
+  fiscalYearStart       String   @map("fiscal_year_start") @db.VarChar
+  fiscalYearEnd         String   @map("fiscal_year_end") @db.VarChar
+  travelPolicies        Json?    @map("travel_policies") @db.JsonB
+  equipmentThreshold    Decimal? @map("equipment_threshold") @db.Decimal(12, 2)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@map("organization_financials")
+}
+
+model NonProfitBudgetStandard {
+  id               String   @id @default(uuid()) @db.VarChar
+  standardType     String   @map("standard_type") @db.VarChar
+  category         String   @db.VarChar
+  subcategory      String?  @db.VarChar
+  guideline        String   @db.Text
+  source           String   @db.VarChar
+  applicableTo     String[] @map("applicable_to") @db.VarChar
+  ombReference     String?  @map("omb_reference") @db.VarChar
+  maxRate          Decimal? @map("max_rate") @db.Decimal(5, 4)
+  allowableExpense Boolean  @default(true) @map("allowable_expense")
+  requiresApproval Boolean  @default(false) @map("requires_approval")
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([standardType, category])
+  @@index([category])
+  @@map("nonprofit_budget_standards")
+}

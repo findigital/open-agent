@@ -51,6 +51,14 @@ async function main() {
   console.log('\n💬 Creating comments...');
   await createComments(proposals, users);
 
+  // Create budget standards
+  console.log('\n📊 Creating non-profit budget standards...');
+  const standards = await createBudgetStandards();
+
+  // Create organization financials
+  console.log('\n💵 Creating organization financial data...');
+  await createOrganizationFinancials(orgs);
+
   console.log('\n✨ Database seed completed successfully!\n');
   console.log('📊 Summary:');
   console.log(`   - ${users.length} users`);
@@ -59,6 +67,7 @@ async function main() {
   console.log(`   - ${templates.length} templates`);
   console.log(`   - ${grants.length} grants`);
   console.log(`   - ${proposals.length} proposals`);
+  console.log(`   - ${standards.length} budget standards`);
   console.log('\n🔑 Login Credentials:');
   console.log('   Email: admin@nonprofit.org');
   console.log('   Password: password123\n');
@@ -70,15 +79,19 @@ async function cleanDatabase() {
   await prisma.proposalApproval.deleteMany({});
   await prisma.proposalVersion.deleteMany({});
   await prisma.proposalSection.deleteMany({});
+  await prisma.proposalBudget.deleteMany({});
   await prisma.proposal.deleteMany({});
   await prisma.templateSection.deleteMany({});
   await prisma.proposalTemplate.deleteMany({});
+  await prisma.budgetTemplate.deleteMany({});
   await prisma.organizationDocEmbedding.deleteMany({});
   await prisma.organizationDocument.deleteMany({});
+  await prisma.organizationFinancials.deleteMany({});
   await prisma.grantOpportunity.deleteMany({});
   await prisma.organizationMember.deleteMany({});
   await prisma.workspace.deleteMany({});
   await prisma.organization.deleteMany({});
+  await prisma.nonProfitBudgetStandard.deleteMany({});
   console.log('   ✓ Cleaned proposal SaaS tables');
 }
 
@@ -566,6 +579,282 @@ async function createComments(proposals: any[], users: any[]) {
 
       console.log(`   ✓ Created comments for proposal`);
     }
+  }
+}
+
+async function createBudgetStandards() {
+  // OMB 2 CFR 200 - Federal Grant Budget Standards
+  const standards = [
+    // Personnel Standards
+    {
+      standardType: 'federal',
+      category: 'Personnel',
+      subcategory: 'Salaries',
+      guideline: 'Salaries must be reasonable and consistent with organizational policy. Compensation for personal services must be based on actual time worked on the grant.',
+      source: 'OMB 2 CFR 200.430',
+      applicableTo: ['federal'],
+      ombReference: '2 CFR 200.430',
+      allowableExpense: true,
+      requiresApproval: false,
+      notes: 'Requires time and effort documentation (timesheets or equivalent).',
+    },
+    {
+      standardType: 'federal',
+      category: 'Personnel',
+      subcategory: 'Fringe Benefits',
+      guideline: 'Fringe benefits may include health insurance, FICA, retirement, workers compensation, and other benefits. Must be reasonable and allocable.',
+      source: 'OMB 2 CFR 200.431',
+      applicableTo: ['federal'],
+      ombReference: '2 CFR 200.431',
+      allowableExpense: true,
+      requiresApproval: false,
+      notes: 'Typical fringe benefit rates range from 20-35% of salaries.',
+    },
+
+    // Travel Standards
+    {
+      standardType: 'federal',
+      category: 'Travel',
+      subcategory: 'Domestic Travel',
+      guideline: 'Travel costs must be reasonable and necessary. Follow organizational travel policy or federal per diem rates.',
+      source: 'OMB 2 CFR 200.474',
+      applicableTo: ['federal'],
+      ombReference: '2 CFR 200.474',
+      allowableExpense: true,
+      requiresApproval: false,
+      notes: 'Use GSA per diem rates as a guideline. Lodging receipts required.',
+    },
+    {
+      standardType: 'federal',
+      category: 'Travel',
+      subcategory: 'International Travel',
+      guideline: 'International travel requires prior approval from the awarding agency. Must be necessary for the project.',
+      source: 'OMB 2 CFR 200.474',
+      applicableTo: ['federal'],
+      ombReference: '2 CFR 200.474',
+      allowableExpense: true,
+      requiresApproval: true,
+      notes: 'Must obtain prior written approval. Justify necessity in budget narrative.',
+    },
+
+    // Equipment Standards
+    {
+      standardType: 'federal',
+      category: 'Equipment',
+      subcategory: 'Equipment Purchase',
+      guideline: 'Equipment is property with acquisition cost of $5,000 or more and useful life of more than one year. Lower thresholds may apply per organizational policy.',
+      source: 'OMB 2 CFR 200.439',
+      applicableTo: ['federal'],
+      ombReference: '2 CFR 200.439',
+      allowableExpense: true,
+      requiresApproval: false,
+      notes: 'Itemize all equipment. Justify necessity. May require competitive bidding.',
+    },
+
+    // Supplies Standards
+    {
+      standardType: 'federal',
+      category: 'Supplies',
+      subcategory: 'General Supplies',
+      guideline: 'Supplies are tangible personal property other than equipment. Costs must be reasonable and allocable to the project.',
+      source: 'OMB 2 CFR 200.94',
+      applicableTo: ['federal', 'foundation', 'corporate'],
+      ombReference: '2 CFR 200.94',
+      allowableExpense: true,
+      requiresApproval: false,
+      notes: 'Include office supplies, educational materials, software subscriptions, etc.',
+    },
+
+    // Contractual Standards
+    {
+      standardType: 'federal',
+      category: 'Contractual',
+      subcategory: 'Consultant Services',
+      guideline: 'Contracts must follow organizational procurement standards. Daily rates should not exceed federal per diem rates unless justified.',
+      source: 'OMB 2 CFR 200.459',
+      applicableTo: ['federal'],
+      ombReference: '2 CFR 200.459',
+      maxRate: 0.0011,
+      allowableExpense: true,
+      requiresApproval: false,
+      notes: 'Consultant fees typically range from $500-$1,200 per day. Provide justification for rates.',
+    },
+
+    // Other Direct Costs
+    {
+      standardType: 'federal',
+      category: 'Other',
+      subcategory: 'Printing and Publications',
+      guideline: 'Publication costs are allowable when directly related to project activities. Includes printing, binding, and distribution.',
+      source: 'OMB 2 CFR 200.461',
+      applicableTo: ['federal', 'foundation'],
+      ombReference: '2 CFR 200.461',
+      allowableExpense: true,
+      requiresApproval: false,
+      notes: 'Ensure publications acknowledge federal funding.',
+    },
+    {
+      standardType: 'federal',
+      category: 'Other',
+      subcategory: 'Communications',
+      guideline: 'Telephone, internet, and postage costs are allowable when necessary for project activities.',
+      source: 'OMB 2 CFR 200.421',
+      applicableTo: ['federal', 'foundation', 'corporate'],
+      ombReference: '2 CFR 200.421',
+      allowableExpense: true,
+      requiresApproval: false,
+      notes: 'Allocate based on project usage percentage.',
+    },
+
+    // Indirect Costs
+    {
+      standardType: 'federal',
+      category: 'Indirect',
+      subcategory: 'Negotiated Rate',
+      guideline: 'Organizations with negotiated indirect cost rate agreement (NICRA) may charge approved rate on modified total direct costs (MTDC).',
+      source: 'OMB 2 CFR 200.414',
+      applicableTo: ['federal'],
+      ombReference: '2 CFR 200.414',
+      allowableExpense: true,
+      requiresApproval: false,
+      notes: 'Rate must be negotiated with federal cognizant agency. NICRA required.',
+    },
+    {
+      standardType: 'federal',
+      category: 'Indirect',
+      subcategory: 'De Minimis Rate',
+      guideline: 'Organizations without negotiated rate may use 10% de minimis rate on modified total direct costs (MTDC).',
+      source: 'OMB 2 CFR 200.414(f)',
+      applicableTo: ['federal'],
+      ombReference: '2 CFR 200.414(f)',
+      maxRate: 0.10,
+      allowableExpense: true,
+      requiresApproval: false,
+      notes: 'May be used indefinitely without documentation. No NICRA required.',
+    },
+
+    // Foundation Standards
+    {
+      standardType: 'foundation',
+      category: 'Administrative',
+      subcategory: 'Administrative Costs',
+      guideline: 'Private foundations typically limit administrative/overhead costs to 10-20% of total budget.',
+      source: 'Foundation Best Practices',
+      applicableTo: ['foundation'],
+      maxRate: 0.15,
+      allowableExpense: true,
+      requiresApproval: false,
+      notes: 'Review specific foundation guidelines. Some may have stricter limits.',
+    },
+    {
+      standardType: 'foundation',
+      category: 'Personnel',
+      subcategory: 'Salaries',
+      guideline: 'Salaries should be reasonable for the position and geographic area. Foundations often review against sector benchmarks.',
+      source: 'Foundation Best Practices',
+      applicableTo: ['foundation', 'corporate'],
+      allowableExpense: true,
+      requiresApproval: false,
+      notes: 'Be prepared to justify executive compensation if questioned.',
+    },
+
+    // Unallowable Costs
+    {
+      standardType: 'federal',
+      category: 'Unallowable',
+      subcategory: 'Lobbying',
+      guideline: 'Costs of lobbying activities are unallowable under federal grants.',
+      source: 'OMB 2 CFR 200.450',
+      applicableTo: ['federal'],
+      ombReference: '2 CFR 200.450',
+      allowableExpense: false,
+      requiresApproval: false,
+      notes: 'Includes attempts to influence legislation or government officials.',
+    },
+    {
+      standardType: 'federal',
+      category: 'Unallowable',
+      subcategory: 'Fundraising',
+      guideline: 'Fundraising and investment management costs are unallowable under federal grants.',
+      source: 'OMB 2 CFR 200.442',
+      applicableTo: ['federal'],
+      ombReference: '2 CFR 200.442',
+      allowableExpense: false,
+      requiresApproval: false,
+      notes: 'Includes costs of organized fundraising campaigns and investment management.',
+    },
+    {
+      standardType: 'federal',
+      category: 'Unallowable',
+      subcategory: 'Alcoholic Beverages',
+      guideline: 'Costs of alcoholic beverages are unallowable under federal grants.',
+      source: 'OMB 2 CFR 200.423',
+      applicableTo: ['federal'],
+      ombReference: '2 CFR 200.423',
+      allowableExpense: false,
+      requiresApproval: false,
+      notes: 'Applies to all federal grants.',
+    },
+  ];
+
+  const createdStandards = [];
+  for (const standard of standards) {
+    const created = await prisma.nonProfitBudgetStandard.create({
+      data: standard,
+    });
+    createdStandards.push(created);
+  }
+
+  console.log(`   ✓ Created ${createdStandards.length} budget standards`);
+  return createdStandards;
+}
+
+async function createOrganizationFinancials(orgs: any[]) {
+  for (const org of orgs) {
+    await prisma.organizationFinancials.create({
+      data: {
+        organizationId: org.id,
+        salaryRanges: {
+          'Executive Director': { min: 85000, max: 125000, typical: 105000 },
+          'Program Director': { min: 65000, max: 95000, typical: 78000 },
+          'Program Manager': { min: 55000, max: 75000, typical: 65000 },
+          'Program Coordinator': { min: 45000, max: 60000, typical: 52000 },
+          'Grant Writer': { min: 50000, max: 70000, typical: 60000 },
+          'Development Director': { min: 60000, max: 85000, typical: 72000 },
+          'Finance Manager': { min: 55000, max: 75000, typical: 65000 },
+          'Administrative Assistant': { min: 35000, max: 48000, typical: 42000 },
+          'Community Educator': { min: 40000, max: 55000, typical: 47000 },
+          'Part-time Instructor': { min: 25, max: 45, typical: 35, unit: 'hourly' },
+        },
+        fringeBenefitRate: 0.28, // 28%
+        indirectCostRate: 0.15, // 15% negotiated rate
+        indirectCostRateType: 'negotiated',
+        fiscalYearStart: '01-01',
+        fiscalYearEnd: '12-31',
+        travelPolicies: {
+          perDiem: {
+            domestic: 'Follow GSA rates by city',
+            international: 'Follow State Department rates',
+          },
+          mileage: {
+            rate: 0.655, // IRS standard mileage rate
+            unit: 'per mile',
+          },
+          lodging: {
+            requiresReceipts: true,
+            maxWithoutReceipt: 75,
+          },
+          meals: {
+            breakfast: 15,
+            lunch: 20,
+            dinner: 30,
+          },
+        },
+        equipmentThreshold: 5000, // $5,000 equipment threshold
+      },
+    });
+
+    console.log(`   ✓ Created financial data for ${org.name}`);
   }
 }
 
