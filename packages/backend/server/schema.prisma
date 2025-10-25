@@ -444,9 +444,13 @@ model Organization {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  workspaces   Workspace[]
-  members      OrganizationMember[]
-  documents    OrganizationDocument[]
+  workspaces          Workspace[]
+  members             OrganizationMember[]
+  documents           OrganizationDocument[]
+  onboardingProgress  OnboardingProgress?
+  context             OrganizationContext?
+  onboardingDocuments OnboardingDocument[]
+  websiteImportJobs   WebsiteImportJob[]
 
   @@index([slug])
   @@map("organizations")
@@ -799,4 +803,119 @@ model NonProfitBudgetStandard {
   @@index([standardType, category])
   @@index([category])
   @@map("nonprofit_budget_standards")
+}
+
+// ============================================================================
+// Intelligent Onboarding Models
+// ============================================================================
+
+model OnboardingProgress {
+  id             String    @id @default(uuid()) @db.VarChar
+  organizationId String    @unique @map("organization_id") @db.VarChar
+  userId         String    @map("user_id") @db.VarChar
+  currentStep    Int       @default(1) @map("current_step")
+  completedSteps Json      @default("[]") @map("completed_steps") @db.JsonB
+  qualityScore   Int       @default(0) @map("quality_score")
+  isComplete     Boolean   @default(false) @map("is_complete")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  completedAt    DateTime? @map("completed_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@map("onboarding_progress")
+}
+
+model OnboardingDocument {
+  id               String    @id @default(uuid()) @db.VarChar
+  organizationId   String    @map("organization_id") @db.VarChar
+  fileName         String    @map("file_name") @db.VarChar
+  fileType         String    @map("file_type") @db.VarChar
+  fileSize         Int       @map("file_size")
+  storageUrl       String    @map("storage_url") @db.VarChar
+  documentType     String    @map("document_type") @db.VarChar
+  processingStatus String    @default("pending") @map("processing_status") @db.VarChar
+  extractedData    Json?     @map("extracted_data") @db.JsonB
+  confidence       Decimal?  @db.Decimal(3, 2)
+  uploadedBy       String    @map("uploaded_by") @db.VarChar
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  processedAt      DateTime? @map("processed_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([processingStatus])
+  @@map("onboarding_documents")
+}
+
+model OrganizationContext {
+  id               String   @id @default(uuid()) @db.VarChar
+  organizationId   String   @unique @map("organization_id") @db.VarChar
+
+  // Identity
+  mission          String?  @db.Text
+  vision           String?  @db.Text
+  values           String[] @db.VarChar
+  focusAreas       String[] @map("focus_areas") @db.VarChar
+  geographicScope  String?  @map("geographic_scope") @db.VarChar
+  targetPopulation String?  @map("target_population") @db.Text
+  yearFounded      Int?     @map("year_founded")
+  annualBudget     String?  @map("annual_budget") @db.VarChar
+
+  // Programs
+  programs         Json     @default("[]") @db.JsonB
+
+  // Capacity
+  staffCount       Int?     @map("staff_count")
+  fullTimeStaff    Int?     @map("full_time_staff")
+  partTimeStaff    Int?     @map("part_time_staff")
+  volunteers       Int?     @map("volunteers")
+  boardCount       Int?     @map("board_count")
+  leadership       Json?    @db.JsonB
+
+  // Financial
+  totalRevenue     Decimal? @map("total_revenue") @db.Decimal(12, 2)
+  totalExpenses    Decimal? @map("total_expenses") @db.Decimal(12, 2)
+  programExpensePct Decimal? @map("program_expense_pct") @db.Decimal(5, 2)
+  adminExpensePct  Decimal? @map("admin_expense_pct") @db.Decimal(5, 2)
+  fundingSourcesJson Json?  @map("funding_sources") @db.JsonB
+
+  // Impact
+  impactMetrics    Json     @default("[]") @map("impact_metrics") @db.JsonB
+  successStories   Json     @default("[]") @map("success_stories") @db.JsonB
+
+  // Quality Scores
+  identityScore    Int      @default(0) @map("identity_score")
+  programsScore    Int      @default(0) @map("programs_score")
+  capacityScore    Int      @default(0) @map("capacity_score")
+  impactScore      Int      @default(0) @map("impact_score")
+  overallScore     Int      @default(0) @map("overall_score")
+
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("organization_context")
+}
+
+model WebsiteImportJob {
+  id             String    @id @default(uuid()) @db.VarChar
+  organizationId String    @map("organization_id") @db.VarChar
+  websiteUrl     String    @map("website_url") @db.VarChar
+  status         String    @default("pending") @db.VarChar
+  pagesScraped   Int       @default(0) @map("pages_scraped")
+  extractedData  Json?     @map("extracted_data") @db.JsonB
+  errorMessage   String?   @map("error_message") @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  completedAt    DateTime? @map("completed_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("website_import_jobs")
 }

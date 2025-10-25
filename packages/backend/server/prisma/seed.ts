@@ -87,6 +87,10 @@ async function cleanDatabase() {
   await prisma.organizationDocEmbedding.deleteMany({});
   await prisma.organizationDocument.deleteMany({});
   await prisma.organizationFinancials.deleteMany({});
+  await prisma.websiteImportJob.deleteMany({});
+  await prisma.onboardingDocument.deleteMany({});
+  await prisma.organizationContext.deleteMany({});
+  await prisma.onboardingProgress.deleteMany({});
   await prisma.grantOpportunity.deleteMany({});
   await prisma.organizationMember.deleteMany({});
   await prisma.workspace.deleteMany({});
