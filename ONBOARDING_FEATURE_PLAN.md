@@ -85,34 +85,91 @@ Dashboard → "Improve Proposal Quality" CTA → Onboarding
 
 ---
 
-#### Step 2: Mission & Impact
-**Screen**: Your Mission & Impact
-- **Purpose**: Capture core organizational identity
+#### Step 2: Mission, Needs & Impact
+**Screen**: Your Mission & The Needs You Address
+- **Purpose**: Capture core organizational identity AND the community needs/gaps being addressed
 - **Two Approaches**:
 
 **Option A: Quick Upload (Recommended)**
-- Upload your annual report, strategic plan, or website URL
-- AI will extract mission, vision, and impact data
+- Upload your annual report, strategic plan, needs assessment, or website URL
+- AI will extract mission, vision, community needs, and impact data
 - Visual: Large drag-and-drop zone with icons for PDF, DOC, URL
 - Supported formats: PDF, DOCX, URL
 
-**Option B: Manual Entry**
+**Option B: Manual Entry - THREE SECTIONS**
+
+**Section 1: Your Mission**
 - Mission Statement * (textarea, 500 char max)
+  - Placeholder: "What is your organization's core purpose?"
 - Vision Statement (textarea, 300 char max)
+  - Placeholder: "What future do you envision?"
 - Primary Focus Areas * (multi-select tags: Education, Health, Environment, etc.)
 - Geographic Scope * (select: Local, Regional, National, International)
 - Population Served * (text: "e.g., Low-income families, Youth ages 12-18")
 - Annual Budget Range * (select: <$100K, $100K-$500K, $500K-$1M, $1M-$5M, $5M+)
 
+**Section 2: Community Needs & Gaps** ⭐ NEW ⭐
+- **Why This Matters**: Grant proposals must clearly articulate the need/problem you're addressing. This context is essential for compelling proposals.
+- Primary Need/Problem Statement * (textarea, 800 char max)
+  - Prompt: "What critical need or gap does your organization address?"
+  - Helper text: "Be specific. Use data if available. Example: 'In our county, 40% of students lack access to after-school programs, leading to increased juvenile delinquency rates and lower academic achievement.'"
+  - Examples shown:
+    - Education gap: "75% of low-income youth in our city lack access to STEM education..."
+    - Food insecurity: "1 in 4 families in our region experience food insecurity..."
+    - Healthcare access: "Our community has a 15:1 patient-to-doctor ratio..."
+
+- Supporting Evidence (optional, multiple entries):
+  - Data Point / Statistic (e.g., "65% of families earn below poverty line")
+  - Source (e.g., "2024 Census Data", "County Health Assessment")
+  - [Add Another Data Point] button
+
+- Community Impact Without Your Work (textarea, 300 char max)
+  - Prompt: "What would happen if your organization didn't exist?"
+  - Helper text: "This demonstrates urgency and importance"
+
+- Why Existing Solutions Are Inadequate (textarea, 300 char max)
+  - Prompt: "What gaps do existing programs/services leave unfilled?"
+  - Helper text: "Shows why YOUR organization is needed, not just any organization"
+
+**Section 3: Your Unique Approach**
+- How Your Organization Addresses This Need (textarea, 400 char max)
+  - Prompt: "What makes your approach effective and different?"
+  - Helper text: "This becomes your 'theory of change' in proposals"
+
 **Smart Features**:
 - If website URL provided in Step 1, show "Import from Website" button
-- AI extraction shows loading state with progress messages
-- After extraction, show editable pre-filled fields
-- Allow switching between modes
+- AI extraction specifically looks for:
+  - Mission/vision statements
+  - Problem statements and needs assessments
+  - Statistics and data about community needs
+  - Gap analysis
+  - Unique approaches
+- After extraction, show editable pre-filled fields with confidence scores
+- Allow switching between upload and manual modes at any time
+- Save draft automatically every 30 seconds
+
+**AI Extraction - Needs-Specific Prompts**:
+When processing documents, AI specifically extracts:
+```
+✓ Primary need/problem being addressed
+✓ Supporting statistics and data
+✓ Geographic scope of need
+✓ Population affected
+✓ Existing gaps in services
+✓ Organization's unique approach
+✓ Evidence of need (citations, sources)
+```
 
 **Visual Element**:
-- Progress bar (Step 2 of 5)
-- Context Quality Meter: 20% complete (just getting started)
+- Progress bar (Step 2 of 6) - *Note: Now 6 steps instead of 5*
+- Context Quality Meter: 25% complete (building foundation)
+- "Why This Matters" info bubbles throughout
+- Real-time character count on text areas
+
+**Validation**:
+- Must have either Mission Statement OR upload document
+- Must have Need/Problem Statement OR upload document
+- If manual entry, suggest adding at least 1 data point for credibility
 
 **CTA**: "Continue" → Step 3
 
@@ -151,18 +208,59 @@ Dashboard → "Improve Proposal Quality" CTA → Onboarding
 
 **Manual Entry Option** (collapsible)
 - Add Program button
-- For each program:
-  - Program Name *
-  - Description *
-  - Target Population
-  - Annual Participants Served
-  - Key Outcomes
-  - Budget Allocation
+- For each program - **ENHANCED TO INCLUDE NEEDS**:
+
+  **Basic Information**:
+  - Program Name * (text)
+  - Program Description * (textarea, 500 char max)
+  - Target Population (text)
+  - Annual Participants Served (number)
+  - Budget Allocation (number, optional)
+
+  **Need/Gap This Program Addresses** ⭐ NEW ⭐:
+  - Specific Need This Program Fills * (textarea, 400 char max)
+    - Prompt: "What specific gap or need does THIS program address?"
+    - Helper text: "Be program-specific. Example: 'Low-income 3rd graders lack reading skills - 60% read below grade level'"
+    - Placeholder: "Describe the specific problem this program solves..."
+
+  - How This Program Addresses The Need (textarea, 300 char max)
+    - Prompt: "What does this program DO to address this need?"
+    - Example: "Provides 1-on-1 tutoring 3x/week, using evidence-based literacy methods"
+
+  **Outcomes & Impact**:
+  - Key Outcomes * (dynamic list)
+    - Example: "85% of participants improve reading level by 1+ grade"
+    - [Add Outcome] button
+  - Success Metrics (optional list)
+    - Example: "Pre/post assessments show avg. 2.3 grade level improvement"
+
+**AI Enhancement**:
+When extracting program information from documents, AI specifically identifies:
+```
+✓ Program names and descriptions
+✓ Specific needs each program addresses
+✓ Target populations and numbers served
+✓ How program addresses the identified need
+✓ Measurable outcomes and success metrics
+✓ Program-specific data and statistics
+```
+
+**Visual Enhancements**:
+- Each program shows as an expandable card
+- Need statement is highlighted in color (e.g., light yellow background)
+- "Link to Organizational Need" button connects program-level need to Step 2 organizational need
+- Show "Need Statement Quality" indicator (High/Medium/Low based on specificity + data)
 
 **Visual Element**:
-- Progress bar (Step 3 of 5)
+- Progress bar (Step 3 of 6)
 - Context Quality Meter: 50% complete (getting better!)
 - Document processing animations
+- Program cards with collapsible sections
+
+**Validation**:
+- Each program must have Name, Description, AND Need Statement
+- Suggest adding at least 1 outcome per program
+- Flag if need statement lacks specificity or data
 
 **CTA**: "Continue" → Step 4
 
@@ -343,27 +441,41 @@ Recommendations to improve:
    - Geographic scope
    - Population served
 
-2. **Programs & Services** (Priority: Critical)
+2. **Needs & Gaps** ⭐ NEW CATEGORY ⭐ (Priority: Critical)
+   - **Why Added**: Essential for grant proposals - the "need statement" or "problem statement" is the foundation of every proposal
+   - Primary need/problem being addressed
+   - Supporting evidence and statistics
+   - Data sources and citations
+   - Community impact without the organization
+   - Gaps in existing solutions
+   - Unique organizational approach
+   - **Organizational-level**: Broad community needs
+   - **Program-level**: Specific needs each program addresses
+   - **Evidence Quality**: Data points, sources, quantifiable metrics
+
+3. **Programs & Services** (Priority: Critical)
    - Program descriptions
+   - **Program-specific needs addressed** ⭐ NEW ⭐
+   - **How program addresses identified needs** ⭐ NEW ⭐
    - Target populations
    - Outcomes/Impact
    - Success stories
    - Evaluation data
 
-3. **Organizational Capacity** (Priority: High)
+4. **Organizational Capacity** (Priority: High)
    - Staff structure
    - Board composition
    - Financial health
    - Past grant success
 
-4. **Impact Evidence** (Priority: High)
+5. **Impact Evidence** (Priority: High)
    - Metrics and KPIs
    - Success stories
    - Testimonials
    - Case studies
    - Evaluation reports
 
-5. **Historical Context** (Priority: Medium)
+6. **Historical Context** (Priority: Medium)
    - Past proposals
    - Grant reports
    - Annual reports
@@ -400,11 +512,15 @@ Recommendations to improve:
 **Tier 1 - Must Have** (Block completion if missing):
 - Organization name, EIN, type
 - Mission statement
+- **Primary need/problem statement** ⭐ NEW ⭐
 - At least 1 program description
+- **At least 1 program-specific need statement** ⭐ NEW ⭐
 - Basic financial data
 
 **Tier 2 - Should Have** (Warn if missing):
 - Vision statement
+- **Supporting evidence/data for needs** ⭐ NEW ⭐
+- **Organization's unique approach** ⭐ NEW ⭐
 - Impact metrics
 - Staff structure
 - Past grant history
@@ -414,6 +530,8 @@ Recommendations to improve:
 - Testimonials
 - Board bios
 - Strategic plans
+- **Gap analysis (why existing solutions fall short)** ⭐ NEW ⭐
+- **Community impact without organization** ⭐ NEW ⭐
 
 ---
 
@@ -424,25 +542,28 @@ Recommendations to improve:
 **Visual Representation**:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Organization Context Quality                           │
-│                                                          │
-│  ████████████████████████████░░░░░░░░░░  87/100         │
-│                                                          │
-│  Excellent - Ready to write compelling proposals!       │
-│                                                          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │ Identity     │  │ Programs     │  │ Capacity     │  │
-│  │ ██████ 95%   │  │ █████░ 85%   │  │ ██████ 90%   │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  │
-│                                                          │
-│  Missing:                                                │
-│  → Past successful proposals (+15 points)                │
-│  → Board member information (+5 points)                  │
-│                                                          │
-│  [Add More Context]                                      │
-└─────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│  Organization Context Quality                                 │
+│                                                                │
+│  ████████████████████████████░░░░░░░░░░  87/100               │
+│                                                                │
+│  Excellent - Ready to write compelling proposals!             │
+│                                                                │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌──────┐│
+│  │Identity │  │ Needs   │  │Programs │  │Capacity │  │Impact││
+│  │████ 95% │  │███░ 78% │  │█████ 92%│  │████ 88% │  │██ 45%││
+│  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └──────┘│
+│                                                                │
+│  Needs Improvement: ⚠️                                         │
+│  → Add supporting data/statistics for needs (+20 points)       │
+│  → Include sources for evidence (+15 points)                   │
+│  → Add impact metrics (+10 points)                             │
+│                                                                │
+│  [Add More Context]                                            │
+└───────────────────────────────────────────────────────────────┘
 ```
+
+**Updated to show 5 categories**: Identity, Needs ⭐ NEW ⭐, Programs, Capacity, Impact
 
 **Score Ranges & Labels**:
 - 0-40: "Getting Started" (Red) - Basic information only
@@ -577,9 +698,53 @@ Return as JSON:
 Only extract explicit statements. If not found, return null for that field.
 ```
 
-#### Program Extraction Prompt
+#### Needs & Gaps Extraction Prompt ⭐ NEW ⭐
 ```
-You are analyzing a document to extract nonprofit program information.
+You are analyzing a nonprofit organization's document to extract information about the community needs, problems, and gaps they address.
+
+Document excerpt:
+{document_text}
+
+Extract the following:
+
+1. Primary Need/Problem Statement - What critical community need or gap does this organization address? (2-4 sentences)
+2. Supporting Evidence - Data, statistics, or facts that demonstrate the need
+   - Include the specific data point
+   - Include the source if mentioned
+   - Format: [{"statistic": "40% of students lack access...", "source": "2024 County Assessment"}]
+3. Geographic Scope of Need - Where does this need exist? (Local, county, state, national, etc.)
+4. Population Affected - Who is impacted by this need? Be specific about numbers if mentioned.
+5. Impact Without Organization - What would happen if this organization didn't exist?
+6. Gaps in Existing Solutions - Why are current programs/services inadequate?
+7. Organization's Unique Approach - How does this org address the need differently/better?
+
+Return as JSON:
+{
+  "primary_need": "Detailed problem statement...",
+  "supporting_evidence": [
+    {
+      "statistic": "...",
+      "source": "...",
+      "year": 2024
+    }
+  ],
+  "geographic_scope": "...",
+  "population_affected": {
+    "description": "Low-income youth ages 12-18",
+    "estimated_number": 5000
+  },
+  "impact_without_org": "...",
+  "gaps_in_solutions": "...",
+  "unique_approach": "...",
+  "confidence": 0.88
+}
+
+Be specific and include quantifiable data when available. If information is not found, return null for that field.
+```
+
+#### Program Extraction Prompt ⭐ UPDATED ⭐
+```
+You are analyzing a document to extract nonprofit program information, INCLUDING the specific needs each program addresses.
 
 Document excerpt:
 {document_text}
@@ -587,23 +752,36 @@ Document excerpt:
 Extract all programs/services mentioned. For each program:
 1. Program Name
 2. Description (2-3 sentences)
-3. Target Population
-4. Geographic Scope
-5. Impact Metrics (numbers served, outcomes, etc.)
-6. Key Activities
+3. **Specific Need/Gap This Program Addresses** ⭐ NEW ⭐ - What problem does THIS program solve?
+4. **How Program Addresses The Need** ⭐ NEW ⭐ - What does the program DO to solve the problem?
+5. Target Population
+6. Geographic Scope
+7. Impact Metrics (numbers served, outcomes, etc.)
+8. Key Activities
+9. **Supporting Evidence for Need** ⭐ NEW ⭐ - Data specific to this program's target need
 
 Return as JSON array:
 [
   {
     "name": "...",
     "description": "...",
+    "need_addressed": "Specific problem this program solves...",
+    "how_addresses_need": "What the program does to solve it...",
     "target_population": "...",
     "geographic_scope": "...",
     "metrics": ["...", "..."],
     "activities": ["...", "..."],
+    "need_evidence": [
+      {
+        "statistic": "60% of 3rd graders read below grade level",
+        "source": "District Assessment 2024"
+      }
+    ],
     "confidence": 0.92
   }
 ]
+
+Focus on extracting the PROBLEM or NEED for each program, not just what the program does.
 ```
 
 #### Financial Data Extraction Prompt
@@ -716,26 +894,35 @@ finalConfidence = (
 
 ## 5. Context Quality Metrics
 
-### 5.1 Scoring Algorithm
+### 5.1 Scoring Algorithm ⭐ UPDATED WITH NEEDS ⭐
 
 **Overall Score (0-100)**:
 
 ```typescript
 interface QualityScore {
   identity: number;      // 0-100
+  needs: number;         // 0-100 ⭐ NEW ⭐
   programs: number;      // 0-100
   capacity: number;      // 0-100
   impact: number;        // 0-100
 }
 
-// Weighted calculation
+// Weighted calculation ⭐ UPDATED ⭐
 overallScore = (
-  identity * 0.30 +      // Mission is most critical
-  programs * 0.35 +      // Programs are core to proposals
-  capacity * 0.20 +      // Capacity demonstrates readiness
-  impact * 0.15          // Impact proves effectiveness
+  identity * 0.25 +      // Mission (reduced from 30% to make room for needs)
+  needs * 0.25 +         // ⭐ NEW ⭐ Needs/gaps are critical for proposals
+  programs * 0.30 +      // Programs (reduced from 35%)
+  capacity * 0.15 +      // Capacity (reduced from 20%)
+  impact * 0.05          // Impact (reduced from 15% since it overlaps with needs)
 )
 ```
+
+**Rationale for Weight Changes**:
+- **Needs (25%)**: Added as equally important to Identity because every grant proposal must have a strong need statement
+- **Identity (25%)**: Mission/vision remain critical, shares top priority with Needs
+- **Programs (30%)**: Slight increase in relative importance as programs are the solution to needs
+- **Capacity (15%)**: Slightly reduced but still important for demonstrating readiness
+- **Impact (5%)**: Reduced because impact metrics are now integrated into needs/programs evidence
 
 **Identity Score Components**:
 - Mission statement exists: 40 points
@@ -744,12 +931,31 @@ overallScore = (
 - Geographic scope defined: 10 points
 - Target population defined: 15 points
 
-**Programs Score Components**:
-- At least 1 program described: 30 points
-- 2-3 programs: +20 points
-- 4+ programs: +30 points
-- Impact metrics per program: +10 points each
-- Success stories: +10 points each (max 30)
+**Needs Score Components** ⭐ NEW ⭐:
+- Primary need/problem statement exists: 40 points
+- Need statement includes specific data/statistics: +20 points
+- Supporting evidence with sources (≥2 data points): 15 points
+- Organization's unique approach defined: 10 points
+- Gap analysis (why existing solutions inadequate): 10 points
+- Community impact without organization stated: 5 points
+
+**Bonus Points for Needs Quality**:
+- Need statement is quantifiable (includes numbers): +5 points
+- Multiple sources cited: +5 points
+- Recent data (within 3 years): +5 points
+- Geographic specificity (not vague): +5 points
+
+**Programs Score Components** ⭐ UPDATED ⭐:
+- At least 1 program described: 20 points (reduced from 30)
+- **At least 1 program with need statement**: +15 points ⭐ NEW ⭐
+- 2-3 programs: +15 points (reduced from 20)
+- 4+ programs: +20 points (reduced from 30)
+- **Each program has specific need addressed**: +8 points per program (max 24) ⭐ NEW ⭐
+- **Each program has "how it addresses need"**: +7 points per program (max 21) ⭐ NEW ⭐
+- Impact metrics per program: +5 points each (max 15, reduced from 10 ea)
+- Success stories: +5 points each (max 15, reduced from 30)
+
+**Note**: Programs score now emphasizes the connection between programs and needs, not just program descriptions.
 
 **Capacity Score Components**:
 - Staff count provided: 20 points
@@ -990,20 +1196,41 @@ model OrganizationContext {
   geographicScope String? @map("geographic_scope") @db.VarChar
   targetPopulation String? @map("target_population") @db.Text
 
-  // Programs
-  programs       Json     @default("[]")
+  // Needs & Gaps ⭐ NEW SECTION ⭐
+  primaryNeed     String?  @map("primary_need") @db.Text
+  needEvidence    Json?    @default("[]") @map("need_evidence") @db.JsonB
+  impactWithoutOrg String? @map("impact_without_org") @db.Text
+  gapsInSolutions String?  @map("gaps_in_solutions") @db.Text
+  uniqueApproach  String?  @map("unique_approach") @db.Text
+
+  // Programs (now includes need for each program)
+  programs       Json     @default("[]") @db.JsonB
+  // Each program object structure:
+  // {
+  //   id: string,
+  //   name: string,
+  //   description: string,
+  //   needAddressed: string,  ⭐ NEW ⭐
+  //   howAddressesNeed: string,  ⭐ NEW ⭐
+  //   needEvidence: [{statistic, source}],  ⭐ NEW ⭐
+  //   targetPopulation: string,
+  //   participantsServed: number,
+  //   outcomes: string[],
+  //   budget: number
+  // }
 
   // Capacity
   staffCount     Int?     @map("staff_count")
   boardCount     Int?     @map("board_count")
-  leadership     Json?
+  leadership     Json?    @db.JsonB
 
   // Impact
-  impactMetrics  Json     @default("[]") @map("impact_metrics")
-  successStories Json     @default("[]") @map("success_stories")
+  impactMetrics  Json     @default("[]") @map("impact_metrics") @db.JsonB
+  successStories Json     @default("[]") @map("success_stories") @db.JsonB
 
-  // Quality Scores
+  // Quality Scores ⭐ UPDATED ⭐
   identityScore  Int      @default(0) @map("identity_score")
+  needsScore     Int      @default(0) @map("needs_score") ⭐ NEW ⭐
   programsScore  Int      @default(0) @map("programs_score")
   capacityScore  Int      @default(0) @map("capacity_score")
   impactScore    Int      @default(0) @map("impact_score")
@@ -1113,6 +1340,7 @@ interface QualityMeterProps {
   score: number;
   breakdown?: {
     identity: number;
+    needs: number;      // ⭐ NEW ⭐
     programs: number;
     capacity: number;
     impact: number;
@@ -1126,6 +1354,7 @@ interface QualityMeterProps {
   score={87}
   breakdown={{
     identity: 95,
+    needs: 78,      // ⭐ NEW ⭐
     programs: 85,
     capacity: 90,
     impact: 78
@@ -1265,7 +1494,7 @@ export class DocumentProcessorService {
 }
 ```
 
-### 9.3 QualityScorerService
+### 9.3 QualityScorerService ⭐ UPDATED WITH NEEDS SCORING ⭐
 
 ```typescript
 @Injectable()
@@ -1276,15 +1505,18 @@ export class QualityScorerService {
     });
 
     const identityScore = this.calculateIdentityScore(context);
+    const needsScore = this.calculateNeedsScore(context);      // ⭐ NEW ⭐
     const programsScore = this.calculateProgramsScore(context);
     const capacityScore = this.calculateCapacityScore(context);
     const impactScore = this.calculateImpactScore(context);
 
+    // ⭐ UPDATED WEIGHTS ⭐
     const overallScore = Math.round(
-      identityScore * 0.30 +
-      programsScore * 0.35 +
-      capacityScore * 0.20 +
-      impactScore * 0.15
+      identityScore * 0.25 +   // Reduced from 0.30
+      needsScore * 0.25 +      // ⭐ NEW ⭐
+      programsScore * 0.30 +   // Reduced from 0.35
+      capacityScore * 0.15 +   // Reduced from 0.20
+      impactScore * 0.05       // Reduced from 0.15
     );
 
     // Update scores in database
@@ -1292,6 +1524,7 @@ export class QualityScorerService {
       where: { organizationId },
       data: {
         identityScore,
+        needsScore,           // ⭐ NEW ⭐
         programsScore,
         capacityScore,
         impactScore,
@@ -1301,6 +1534,7 @@ export class QualityScorerService {
 
     return {
       identity: identityScore,
+      needs: needsScore,      // ⭐ NEW ⭐
       programs: programsScore,
       capacity: capacityScore,
       impact: impactScore,
@@ -1318,6 +1552,60 @@ export class QualityScorerService {
     if (context.targetPopulation) score += 15;
 
     return Math.min(score, 100);
+  }
+
+  // ⭐ NEW METHOD ⭐
+  private calculateNeedsScore(context: OrganizationContext): number {
+    let score = 0;
+
+    // Primary need/problem statement exists: 40 points
+    if (context.primaryNeed && context.primaryNeed.length > 50) {
+      score += 40;
+
+      // Need statement includes specific data/statistics: +20 points
+      if (this.containsQuantifiableData(context.primaryNeed)) {
+        score += 20;
+      }
+    }
+
+    // Supporting evidence with sources (≥2 data points): 15 points
+    const evidence = (context.needEvidence as any[]) || [];
+    if (evidence.length >= 2) {
+      score += 15;
+    } else if (evidence.length === 1) {
+      score += 8; // Partial credit
+    }
+
+    // Organization's unique approach defined: 10 points
+    if (context.uniqueApproach && context.uniqueApproach.length > 30) {
+      score += 10;
+    }
+
+    // Gap analysis (why existing solutions inadequate): 10 points
+    if (context.gapsInSolutions && context.gapsInSolutions.length > 30) {
+      score += 10;
+    }
+
+    // Community impact without organization stated: 5 points
+    if (context.impactWithoutOrg && context.impactWithoutOrg.length > 20) {
+      score += 5;
+    }
+
+    // Bonus points
+    if (evidence.length > 2) score += 5;  // Multiple sources
+    if (this.hasRecentData(evidence)) score += 5;  // Recent data
+
+    return Math.min(score, 100);
+  }
+
+  private containsQuantifiableData(text: string): boolean {
+    // Check if text contains numbers/percentages
+    return /\d+%|\d+\s*(percent|people|students|families|children)/i.test(text);
+  }
+
+  private hasRecentData(evidence: any[]): boolean {
+    const currentYear = new Date().getFullYear();
+    return evidence.some(e => e.year && e.year >= currentYear - 3);
   }
 
   // ... other scoring methods
@@ -1421,7 +1709,7 @@ export class WebsiteScraperService {
 
 ### 10.1 Integration with Existing Features
 
-**Proposal Writing Integration**:
+**Proposal Writing Integration** ⭐ UPDATED WITH NEEDS ⭐:
 ```typescript
 // When user starts writing a proposal, context is automatically included
 
@@ -1429,16 +1717,25 @@ async generateProposalSection(sectionId: string) {
   // Get organization context
   const context = await this.getOrganizationContext(organizationId);
 
-  // Include in prompt
+  // Include in prompt ⭐ NOW INCLUDES NEEDS ⭐
   const systemPrompt = `
     You are writing a grant proposal section.
 
     Organization Context:
     Mission: ${context.mission}
+
+    Community Need/Problem ⭐ NEW ⭐:
+    ${context.primaryNeed}
+    Supporting Evidence: ${JSON.stringify(context.needEvidence)}
+    Impact Without Organization: ${context.impactWithoutOrg}
+    Gaps in Existing Solutions: ${context.gapsInSolutions}
+    Our Unique Approach: ${context.uniqueApproach}
+
     Programs: ${JSON.stringify(context.programs)}
     Impact: ${JSON.stringify(context.impactMetrics)}
 
     Use this context to write compelling, accurate content.
+    Always ground the proposal in the demonstrated community need.
   `;
 
   // Generate section
