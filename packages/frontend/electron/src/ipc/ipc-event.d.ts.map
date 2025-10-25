@@ -1,0 +1,1 @@
+{"version":3,"file":"ipc-event.d.ts","sourceRoot":"","sources":["ipc-event.ts"],"names":[],"mappings":"AAAA,OAAO,kBAAkB,CAAC;AAE1B,eAAO,MAAM,kBAAkB,eAA6B,CAAC;AAE7D,MAAM,WAAW,eAAe;IAC9B,KAAK,EAAE,MAAM,CAAC;IACd,IAAI,CAAC,EAAE,MAAM,CAAC;CACf;AAED;;;GAGG;AACH,wBAAgB,QAAQ,CAAC,OAAO,EAAE,eAAe,GAAG,iBAAiB,CA4CpE"}

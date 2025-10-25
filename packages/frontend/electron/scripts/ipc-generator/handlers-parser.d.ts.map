@@ -1,0 +1,1 @@
+{"version":3,"file":"handlers-parser.d.ts","sourceRoot":"","sources":["handlers-parser.ts"],"names":[],"mappings":"AAAA,OAAO,EAGL,OAAO,EAER,MAAM,UAAU,CAAC;AAElB,OAAO,EAAE,KAAK,gBAAgB,EAA4B,MAAM,SAAS,CAAC;AAG1E,eAAO,MAAM,sBAAsB,cAAc,CAAC;AAiHlD;;GAEG;AACH,wBAAgB,gBAAgB,CAAC,OAAO,EAAE,OAAO,GAAG;IAClD,IAAI,EAAE,gBAAgB,CAAC;CACxB,CAwEA"}

@@ -1,0 +1,1 @@
+{"version":3,"file":"ipc-scanner.d.ts","sourceRoot":"","sources":["ipc-scanner.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,gBAAgB,EAAE,eAAe,EAAE,MAAM,cAAc,CAAC;AAQjE,qBACa,UAAU;IAEnB,OAAO,CAAC,QAAQ,CAAC,QAAQ;IACzB,OAAO,CAAC,QAAQ,CAAC,OAAO;gBADP,QAAQ,EAAE,gBAAgB,EAC1B,OAAO,EAAE,eAAe;IAG3C,YAAY,0BAE4B,GAAG,EAAE,KAAK,GAAG;IA+CrD,gBAAgB;CAyCjB"}

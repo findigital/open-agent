@@ -410,6 +410,21 @@ export class OnboardingService {
   }
 
   /**
+   * Update current step (for skip/resume functionality)
+   */
+  async updateCurrentStep(organizationId: string, currentStep: number) {
+    const progress = await this.prisma.onboardingProgress.update({
+      where: { organizationId },
+      data: {
+        currentStep,
+      },
+    });
+
+    this.logger.log(`Updated onboarding progress to step ${currentStep} for organization ${organizationId}`);
+    return progress;
+  }
+
+  /**
    * Add impact metrics
    */
   async addImpactMetrics(organizationId: string, metrics: any[]) {

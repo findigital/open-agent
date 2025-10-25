@@ -1,0 +1,1 @@
+{"version":3,"file":"ipc-handle.d.ts","sourceRoot":"","sources":["ipc-handle.ts"],"names":[],"mappings":"AAAA,OAAO,kBAAkB,CAAC;AAE1B,OAAO,EAAE,QAAQ,EAAE,MAAM,YAAY,CAAC;AAEtC,eAAO,MAAM,mBAAmB,eAAwB,CAAC;AAGzD,UAAU,gBAAgB;IACxB,KAAK,EAAE,QAAQ,CAAC;IAChB,IAAI,CAAC,EAAE,MAAM,CAAC;CACf;AAGD,wBAAgB,SAAS,CACvB,OAAO,EAAE,gBAAgB,GACxB,iBAAiB,GAAG,eAAe,CAmErC"}

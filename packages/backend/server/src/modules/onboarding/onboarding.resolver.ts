@@ -1,6 +1,8 @@
 import { Resolver, Mutation, Query, Args } from '@nestjs/graphql';
 import { UseGuards, Logger } from '@nestjs/common';
 import { CurrentUser } from '@afk/server/base';
+import { AuthGuard } from '../../core/auth';
+import { OrganizationMemberGuard } from '../organization/guards/organization-member.guard';
 import { OnboardingService } from './onboarding.service';
 import { QualityScorerService } from './quality-scorer.service';
 import { OnboardingAgentService } from './onboarding-agent.service';
@@ -14,6 +16,7 @@ import { QualityScoreOutput, RecommendationOutput } from './dto/quality-score.ou
 import { ExtractionResultOutput } from './dto/extraction.output';
 
 @Resolver()
+@UseGuards(AuthGuard, OrganizationMemberGuard)
 export class OnboardingResolver {
   private readonly logger = new Logger(OnboardingResolver.name);
 
@@ -132,5 +135,15 @@ export class OnboardingResolver {
   ): Promise<ExtractionResultOutput> {
     this.logger.log(`Extracting from website ${websiteUrl} for org ${organizationId}`);
     return this.onboardingAgent.extractFromWebsite(organizationId, websiteUrl) as any;
+  }
+
+  @Mutation(() => OnboardingProgressOutput)
+  async updateOnboardingProgress(
+    @CurrentUser() user: { id: string },
+    @Args('organizationId') organizationId: string,
+    @Args('currentStep') currentStep: number
+  ): Promise<OnboardingProgressOutput> {
+    this.logger.log(`Updating onboarding progress for org ${organizationId} to step ${currentStep}`);
+    return this.onboardingService.updateCurrentStep(organizationId, currentStep) as any;
   }
 }

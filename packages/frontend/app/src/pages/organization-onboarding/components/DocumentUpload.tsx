@@ -91,8 +91,18 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId, 
       const reader = new FileReader();
 
       reader.onload = (e) => {
-        const content = e.target?.result as string;
-        resolve(content);
+        const content = e.target?.result;
+
+        // For text files, content is already a string
+        if (file.type === 'text/plain') {
+          resolve(content as string);
+        } else {
+          // For binary files (PDF, DOCX), convert ArrayBuffer to base64
+          const arrayBuffer = content as ArrayBuffer;
+          const base64 = arrayBufferToBase64(arrayBuffer);
+          // Send as data URL with mime type for backend to identify format
+          resolve(`data:${file.type};base64,${base64}`);
+        }
       };
 
       reader.onerror = (e) => {
@@ -100,15 +110,22 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId, 
       };
 
       // For text files, read as text
-      // For PDFs and Word docs, we'll read as text (backend will handle parsing)
       if (file.type === 'text/plain') {
         reader.readAsText(file);
       } else {
-        // For binary files (PDF, DOCX), read as data URL
-        // The backend will need to handle these formats
-        reader.readAsText(file);
+        // For binary files (PDF, DOCX), read as ArrayBuffer
+        reader.readAsArrayBuffer(file);
       }
     });
+  };
+
+  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
   };
 
   const handleButtonClick = () => {

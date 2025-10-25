@@ -1,0 +1,24 @@
+type EnsurePromise<T> = T extends Promise<any> ? T : Promise<T>;
+export type ApiMethod<T> = T extends (...args: infer P) => infer R ? (...args: P) => EnsurePromise<R> : never;
+export interface ElectronApis {
+    helper: {
+        test: ApiMethod<import('@afk/electron/entries/helper/test/test').TestService['test']>;
+    };
+    appState: {
+        handleGetState: ApiMethod<import('@afk/electron/entries/main/state/state.service').StateService['handleGetState']>;
+        handleUpdateState: ApiMethod<import('@afk/electron/entries/main/state/state.service').StateService['handleUpdateState']>;
+        handleResetState: ApiMethod<import('@afk/electron/entries/main/state/state.service').StateService['handleResetState']>;
+        handleFlushState: ApiMethod<import('@afk/electron/entries/main/state/state.service').StateService['handleFlushState']>;
+    };
+    ui: {
+        showMainWindow: ApiMethod<import('@afk/electron/entries/main/windows/main-window.service').MainWindowManager['show']>;
+        handleThemeChange: ApiMethod<import('@afk/electron/entries/main/windows/main-window.service').MainWindowManager['handleThemeChange']>;
+        isFullScreen: ApiMethod<import('@afk/electron/entries/main/windows/main-window.service').MainWindowManager['isFullScreen']>;
+        isMaximized: ApiMethod<import('@afk/electron/entries/main/windows/main-window.service').MainWindowManager['isMaximized']>;
+        handleMinimizeApp: ApiMethod<import('@afk/electron/entries/main/windows/main-window.service').MainWindowManager['handleMinimizeApp']>;
+        handleHideApp: ApiMethod<import('@afk/electron/entries/main/windows/main-window.service').MainWindowManager['handleHideApp']>;
+        handleMaximizeApp: ApiMethod<import('@afk/electron/entries/main/windows/main-window.service').MainWindowManager['handleMaximizeApp']>;
+    };
+}
+export {};
+//# sourceMappingURL=ipc-api-types.gen.d.ts.map

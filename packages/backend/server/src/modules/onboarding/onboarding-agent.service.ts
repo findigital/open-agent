@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 import Exa from 'exa-js';
+import * as pdfParse from 'pdf-parse';
+import * as mammoth from 'mammoth';
 import { OnboardingService } from './onboarding.service';
 import { QualityScorerService } from './quality-scorer.service';
 import { ConfigService } from '@nestjs/config';
@@ -72,6 +74,59 @@ export class OnboardingAgentService {
   }
 
   /**
+   * Parse base64-encoded document to text
+   */
+  private async parseDocumentContent(documentContent: string): Promise<string> {
+    // Check if content is a data URL with base64-encoded binary file
+    if (documentContent.startsWith('data:')) {
+      const dataUrlPattern = /^data:([^;]+);base64,(.+)$/;
+      const match = documentContent.match(dataUrlPattern);
+
+      if (!match) {
+        throw new Error('Invalid data URL format');
+      }
+
+      const mimeType = match[1];
+      const base64Content = match[2];
+      const buffer = Buffer.from(base64Content, 'base64');
+
+      this.logger.log(`Parsing ${mimeType} document (${buffer.length} bytes)`);
+
+      // Parse PDF
+      if (mimeType === 'application/pdf') {
+        try {
+          const data = await pdfParse(buffer);
+          this.logger.log(`Extracted ${data.text.length} characters from PDF`);
+          return data.text;
+        } catch (error) {
+          this.logger.error('Failed to parse PDF:', error);
+          throw new Error('Failed to parse PDF document');
+        }
+      }
+
+      // Parse DOCX
+      if (
+        mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        mimeType === 'application/msword'
+      ) {
+        try {
+          const result = await mammoth.extractRawText({ buffer });
+          this.logger.log(`Extracted ${result.value.length} characters from DOCX`);
+          return result.value;
+        } catch (error) {
+          this.logger.error('Failed to parse DOCX:', error);
+          throw new Error('Failed to parse Word document');
+        }
+      }
+
+      throw new Error(`Unsupported document type: ${mimeType}`);
+    }
+
+    // If not a data URL, assume it's plain text
+    return documentContent;
+  }
+
+  /**
    * Extract organization data from document content using Claude
    */
   async extractOrganizationData(
@@ -79,6 +134,9 @@ export class OnboardingAgentService {
     documentContent: string
   ): Promise<ExtractedOrganizationData> {
     this.logger.log(`Extracting organization data for ${organizationId}`);
+
+    // Parse document content (handles PDF, DOCX, and plain text)
+    const textContent = await this.parseDocumentContent(documentContent);
 
     const systemPrompt = this.buildExtractionPrompt();
 
@@ -91,18 +149,18 @@ export class OnboardingAgentService {
         messages: [
           {
             role: 'user',
-            content: `Please extract organization information from this document:\n\n${documentContent.substring(0, 50000)}`,
+            content: `Please extract organization information from this document:\n\n${textContent.substring(0, 50000)}`,
           },
         ],
       });
 
-      const textContent = response.content
+      const responseText = response.content
         .filter((block) => block.type === 'text')
         .map((block) => (block as any).text)
         .join('\n');
 
       // Parse JSON response
-      const extracted = this.parseExtractionResponse(textContent);
+      const extracted = this.parseExtractionResponse(responseText);
 
       // Auto-save extracted data
       await this.autoSaveExtractedData(organizationId, extracted);
