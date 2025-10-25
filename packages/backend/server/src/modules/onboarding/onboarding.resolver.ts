@@ -1,5 +1,5 @@
 import { Resolver, Mutation, Query, Args } from '@nestjs/graphql';
-import { UseGuards, Logger } from '@nestjs/common';
+import { UseGuards, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { CurrentUser } from '@afk/server/base';
 import { AuthGuard } from '../../core/auth';
 import { OrganizationMemberGuard } from '../organization/guards/organization-member.guard';
@@ -32,8 +32,13 @@ export class OnboardingResolver {
     @CurrentUser() user: { id: string },
     @Args('organizationId') organizationId: string
   ): Promise<OnboardingProgressOutput> {
-    this.logger.log(`User ${user.id} starting onboarding for org ${organizationId}`);
-    return this.onboardingService.startOnboarding(user.id, organizationId) as any;
+    try {
+      this.logger.log(`User ${user.id} starting onboarding for org ${organizationId}`);
+      return this.onboardingService.startOnboarding(user.id, organizationId) as any;
+    } catch (error) {
+      this.logger.error(`Failed to start onboarding for org ${organizationId}:`, error);
+      throw new InternalServerErrorException('Failed to start onboarding. Please try again.');
+    }
   }
 
   @Mutation(() => Boolean)
@@ -41,9 +46,14 @@ export class OnboardingResolver {
     @CurrentUser() user: { id: string },
     @Args('input') input: BasicInfoInput
   ): Promise<boolean> {
-    this.logger.log(`Saving basic info for org ${input.organizationId}`);
-    await this.onboardingService.saveBasicInfo(input.organizationId, input);
-    return true;
+    try {
+      this.logger.log(`Saving basic info for org ${input.organizationId}`);
+      await this.onboardingService.saveBasicInfo(input.organizationId, input);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to save basic info for org ${input.organizationId}:`, error);
+      throw new InternalServerErrorException('Failed to save basic information. Please try again.');
+    }
   }
 
   @Mutation(() => Boolean)
@@ -51,9 +61,14 @@ export class OnboardingResolver {
     @CurrentUser() user: { id: string },
     @Args('input') input: MissionInput
   ): Promise<boolean> {
-    this.logger.log(`Saving mission for org ${input.organizationId}`);
-    await this.onboardingService.saveMission(input.organizationId, input);
-    return true;
+    try {
+      this.logger.log(`Saving mission for org ${input.organizationId}`);
+      await this.onboardingService.saveMission(input.organizationId, input);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to save mission for org ${input.organizationId}:`, error);
+      throw new InternalServerErrorException('Failed to save mission information. Please try again.');
+    }
   }
 
   @Mutation(() => Boolean)
@@ -61,9 +76,14 @@ export class OnboardingResolver {
     @CurrentUser() user: { id: string },
     @Args('input') input: SaveNeedsInput
   ): Promise<boolean> {
-    this.logger.log(`Saving needs for org ${input.organizationId}`);
-    await this.onboardingService.saveNeeds(input.organizationId, input);
-    return true;
+    try {
+      this.logger.log(`Saving needs for org ${input.organizationId}`);
+      await this.onboardingService.saveNeeds(input.organizationId, input);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to save needs for org ${input.organizationId}:`, error);
+      throw new InternalServerErrorException('Failed to save needs information. Please try again.');
+    }
   }
 
   @Mutation(() => Boolean)
@@ -71,9 +91,14 @@ export class OnboardingResolver {
     @CurrentUser() user: { id: string },
     @Args('input') input: ProgramInput
   ): Promise<boolean> {
-    this.logger.log(`Adding program for org ${input.organizationId}`);
-    await this.onboardingService.addProgram(input.organizationId, input);
-    return true;
+    try {
+      this.logger.log(`Adding program for org ${input.organizationId}`);
+      await this.onboardingService.addProgram(input.organizationId, input);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to add program for org ${input.organizationId}:`, error);
+      throw new InternalServerErrorException('Failed to add program. Please try again.');
+    }
   }
 
   @Mutation(() => Boolean)
@@ -81,9 +106,14 @@ export class OnboardingResolver {
     @CurrentUser() user: { id: string },
     @Args('input') input: CapacityInput
   ): Promise<boolean> {
-    this.logger.log(`Saving capacity for org ${input.organizationId}`);
-    await this.onboardingService.saveCapacity(input.organizationId, input);
-    return true;
+    try {
+      this.logger.log(`Saving capacity for org ${input.organizationId}`);
+      await this.onboardingService.saveCapacity(input.organizationId, input);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to save capacity for org ${input.organizationId}:`, error);
+      throw new InternalServerErrorException('Failed to save capacity information. Please try again.');
+    }
   }
 
   @Mutation(() => Boolean)
@@ -91,31 +121,52 @@ export class OnboardingResolver {
     @CurrentUser() user: { id: string },
     @Args('organizationId') organizationId: string
   ): Promise<boolean> {
-    this.logger.log(`Completing onboarding for org ${organizationId}`);
-    await this.onboardingService.completeOnboarding(organizationId);
-    return true;
+    try {
+      this.logger.log(`Completing onboarding for org ${organizationId}`);
+      await this.onboardingService.completeOnboarding(organizationId);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to complete onboarding for org ${organizationId}:`, error);
+      throw new InternalServerErrorException('Failed to complete onboarding. Please try again.');
+    }
   }
 
   @Query(() => QualityScoreOutput)
   async getQualityScore(@Args('organizationId') organizationId: string): Promise<QualityScoreOutput> {
-    this.logger.log(`Getting quality score for org ${organizationId}`);
-    return this.qualityScorer.calculateScore(organizationId);
+    try {
+      this.logger.log(`Getting quality score for org ${organizationId}`);
+      return this.qualityScorer.calculateScore(organizationId);
+    } catch (error) {
+      this.logger.error(`Failed to get quality score for org ${organizationId}:`, error);
+      throw new InternalServerErrorException('Failed to calculate quality score. Please try again.');
+    }
   }
 
   @Query(() => [RecommendationOutput])
   async getOnboardingRecommendations(
     @Args('organizationId') organizationId: string
   ): Promise<RecommendationOutput[]> {
-    this.logger.log(`Getting recommendations for org ${organizationId}`);
-    return this.qualityScorer.getRecommendations(organizationId) as any;
+    try {
+      this.logger.log(`Getting recommendations for org ${organizationId}`);
+      return this.qualityScorer.getRecommendations(organizationId) as any;
+    } catch (error) {
+      this.logger.error(`Failed to get recommendations for org ${organizationId}:`, error);
+      throw new InternalServerErrorException('Failed to get recommendations. Please try again.');
+    }
   }
 
   @Query(() => OnboardingProgressOutput, { nullable: true })
   async getOnboardingStatus(
     @Args('organizationId') organizationId: string
   ): Promise<OnboardingProgressOutput | null> {
-    this.logger.log(`Getting onboarding status for org ${organizationId}`);
-    return this.onboardingService.getStatus(organizationId) as any;
+    try {
+      this.logger.log(`Getting onboarding status for org ${organizationId}`);
+      return this.onboardingService.getStatus(organizationId) as any;
+    } catch (error) {
+      this.logger.error(`Failed to get onboarding status for org ${organizationId}:`, error);
+      // Return null for status queries instead of throwing
+      return null;
+    }
   }
 
   @Query(() => OrganizationContextOutput, { nullable: true })
@@ -123,8 +174,14 @@ export class OnboardingResolver {
     @CurrentUser() user: { id: string },
     @Args('organizationId') organizationId: string
   ): Promise<OrganizationContextOutput | null> {
-    this.logger.log(`Getting organization context for org ${organizationId}`);
-    return this.onboardingService.getContext(organizationId) as any;
+    try {
+      this.logger.log(`Getting organization context for org ${organizationId}`);
+      return this.onboardingService.getContext(organizationId) as any;
+    } catch (error) {
+      this.logger.error(`Failed to get organization context for org ${organizationId}:`, error);
+      // Return null for context queries instead of throwing
+      return null;
+    }
   }
 
   @Mutation(() => ExtractionResultOutput)
@@ -133,8 +190,25 @@ export class OnboardingResolver {
     @Args('organizationId') organizationId: string,
     @Args('documentContent') documentContent: string
   ): Promise<ExtractionResultOutput> {
-    this.logger.log(`Extracting from document for org ${organizationId} (${documentContent.length} chars)`);
-    return this.onboardingAgent.extractOrganizationData(organizationId, documentContent) as any;
+    try {
+      this.logger.log(`Extracting from document for org ${organizationId} (${documentContent.length} chars)`);
+
+      if (!documentContent || documentContent.length === 0) {
+        throw new BadRequestException('Document content cannot be empty');
+      }
+
+      if (documentContent.length > 10 * 1024 * 1024) {
+        throw new BadRequestException('Document content too large. Maximum size is 10MB');
+      }
+
+      return this.onboardingAgent.extractOrganizationData(organizationId, documentContent) as any;
+    } catch (error) {
+      this.logger.error(`Failed to extract from document for org ${organizationId}:`, error);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to extract data from document. Please try again.');
+    }
   }
 
   @Mutation(() => ExtractionResultOutput)
@@ -143,8 +217,27 @@ export class OnboardingResolver {
     @Args('organizationId') organizationId: string,
     @Args('websiteUrl') websiteUrl: string
   ): Promise<ExtractionResultOutput> {
-    this.logger.log(`Extracting from website ${websiteUrl} for org ${organizationId}`);
-    return this.onboardingAgent.extractFromWebsite(organizationId, websiteUrl) as any;
+    try {
+      this.logger.log(`Extracting from website ${websiteUrl} for org ${organizationId}`);
+
+      if (!websiteUrl || websiteUrl.length === 0) {
+        throw new BadRequestException('Website URL cannot be empty');
+      }
+
+      // Basic URL validation
+      const urlPattern = /^https?:\/\/.+/i;
+      if (!urlPattern.test(websiteUrl)) {
+        throw new BadRequestException('Invalid website URL. Must start with http:// or https://');
+      }
+
+      return this.onboardingAgent.extractFromWebsite(organizationId, websiteUrl) as any;
+    } catch (error) {
+      this.logger.error(`Failed to extract from website ${websiteUrl} for org ${organizationId}:`, error);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to extract data from website. Please try again.');
+    }
   }
 
   @Mutation(() => OnboardingProgressOutput)
@@ -153,7 +246,20 @@ export class OnboardingResolver {
     @Args('organizationId') organizationId: string,
     @Args('currentStep') currentStep: number
   ): Promise<OnboardingProgressOutput> {
-    this.logger.log(`Updating onboarding progress for org ${organizationId} to step ${currentStep}`);
-    return this.onboardingService.updateCurrentStep(organizationId, currentStep) as any;
+    try {
+      this.logger.log(`Updating onboarding progress for org ${organizationId} to step ${currentStep}`);
+
+      if (currentStep < 0 || currentStep > 7) {
+        throw new BadRequestException('Invalid step number. Must be between 0 and 7');
+      }
+
+      return this.onboardingService.updateCurrentStep(organizationId, currentStep) as any;
+    } catch (error) {
+      this.logger.error(`Failed to update onboarding progress for org ${organizationId}:`, error);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to update onboarding progress. Please try again.');
+    }
   }
 }
