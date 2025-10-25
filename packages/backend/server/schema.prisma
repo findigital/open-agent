@@ -864,6 +864,13 @@ model OrganizationContext {
   yearFounded      Int?     @map("year_founded")
   annualBudget     String?  @map("annual_budget") @db.VarChar
 
+  // Needs & Gaps
+  primaryNeed      String?  @map("primary_need") @db.Text
+  needEvidence     Json?    @default("[]") @map("need_evidence") @db.JsonB
+  impactWithoutOrg String?  @map("impact_without_org") @db.Text
+  gapsInSolutions  String?  @map("gaps_in_solutions") @db.Text
+  uniqueApproach   String?  @map("unique_approach") @db.Text
+
   // Programs
   programs         Json     @default("[]") @db.JsonB
 
@@ -888,6 +895,7 @@ model OrganizationContext {
 
   // Quality Scores
   identityScore    Int      @default(0) @map("identity_score")
+  needsScore       Int      @default(0) @map("needs_score")
   programsScore    Int      @default(0) @map("programs_score")
   capacityScore    Int      @default(0) @map("capacity_score")
   impactScore      Int      @default(0) @map("impact_score")

@@ -24,9 +24,27 @@ export interface MissionInput {
   annualBudget?: string;
 }
 
+export interface NeedsInput {
+  primaryNeed: string;
+  needEvidence?: Array<{
+    statistic: string;
+    source: string;
+    year?: number;
+  }>;
+  impactWithoutOrg?: string;
+  gapsInSolutions?: string;
+  uniqueApproach?: string;
+}
+
 export interface ProgramInput {
   name: string;
   description: string;
+  needAddressed?: string;
+  howAddressesNeed?: string;
+  needEvidence?: Array<{
+    statistic: string;
+    source: string;
+  }>;
   targetPopulation?: string;
   participantsServed?: number;
   outcomes?: string[];
@@ -163,6 +181,27 @@ export class OnboardingService {
   }
 
   /**
+   * Save needs and gaps information (Step 2 - Part 2)
+   */
+  async saveNeeds(organizationId: string, input: NeedsInput) {
+    await this.prisma.organizationContext.update({
+      where: { organizationId },
+      data: {
+        primaryNeed: input.primaryNeed,
+        needEvidence: input.needEvidence || [],
+        impactWithoutOrg: input.impactWithoutOrg,
+        gapsInSolutions: input.gapsInSolutions,
+        uniqueApproach: input.uniqueApproach,
+      },
+    });
+
+    // Recalculate quality score
+    await this.qualityScorer.calculateScore(organizationId);
+
+    this.logger.log(`Saved needs for organization ${organizationId}`);
+  }
+
+  /**
    * Add a program (Step 3)
    */
   async addProgram(organizationId: string, input: ProgramInput) {
@@ -180,6 +219,9 @@ export class OnboardingService {
       id: `program-${Date.now()}`,
       name: input.name,
       description: input.description,
+      needAddressed: input.needAddressed,
+      howAddressesNeed: input.howAddressesNeed,
+      needEvidence: input.needEvidence || [],
       targetPopulation: input.targetPopulation,
       participantsServed: input.participantsServed,
       outcomes: input.outcomes || [],

@@ -4,6 +4,7 @@ import { OrganizationContext } from '@prisma/client';
 
 export interface QualityScore {
   identity: number;
+  needs: number;
   programs: number;
   capacity: number;
   impact: number;
@@ -37,6 +38,7 @@ export class QualityScorerService {
       // Return zeros if no context exists yet
       return {
         identity: 0,
+        needs: 0,
         programs: 0,
         capacity: 0,
         impact: 0,
@@ -45,13 +47,14 @@ export class QualityScorerService {
     }
 
     const identityScore = this.calculateIdentityScore(context);
+    const needsScore = this.calculateNeedsScore(context);
     const programsScore = this.calculateProgramsScore(context);
     const capacityScore = this.calculateCapacityScore(context);
     const impactScore = this.calculateImpactScore(context);
 
-    // Weighted calculation: Identity 30%, Programs 35%, Capacity 20%, Impact 15%
+    // Weighted calculation: Identity 25%, Needs 25%, Programs 30%, Capacity 15%, Impact 5%
     const overallScore = Math.round(
-      identityScore * 0.30 + programsScore * 0.35 + capacityScore * 0.20 + impactScore * 0.15
+      identityScore * 0.25 + needsScore * 0.25 + programsScore * 0.30 + capacityScore * 0.15 + impactScore * 0.05
     );
 
     // Update scores in database
@@ -59,6 +62,7 @@ export class QualityScorerService {
       where: { organizationId },
       data: {
         identityScore,
+        needsScore,
         programsScore,
         capacityScore,
         impactScore,
@@ -70,6 +74,7 @@ export class QualityScorerService {
 
     return {
       identity: identityScore,
+      needs: needsScore,
       programs: programsScore,
       capacity: capacityScore,
       impact: impactScore,
@@ -113,6 +118,76 @@ export class QualityScorerService {
     }
 
     return Math.min(score, 100);
+  }
+
+  /**
+   * Calculate Needs Score (0-100)
+   * Components:
+   * - Primary need/problem statement: 40 points
+   * - Need statement includes data/statistics: +20 points
+   * - Supporting evidence (≥2 data points): 15 points
+   * - Organization's unique approach: 10 points
+   * - Gap analysis: 10 points
+   * - Community impact without org: 5 points
+   * - Bonus: Multiple sources, recent data
+   */
+  private calculateNeedsScore(context: OrganizationContext): number {
+    let score = 0;
+
+    // Primary need/problem statement exists: 40 points
+    if (context.primaryNeed && context.primaryNeed.length > 50) {
+      score += 40;
+
+      // Need statement includes specific data/statistics: +20 points
+      if (this.containsQuantifiableData(context.primaryNeed)) {
+        score += 20;
+      }
+    }
+
+    // Supporting evidence with sources (≥2 data points): 15 points
+    const evidence = (context.needEvidence as any[]) || [];
+    if (evidence.length >= 2) {
+      score += 15;
+    } else if (evidence.length === 1) {
+      score += 8; // Partial credit
+    }
+
+    // Organization's unique approach defined: 10 points
+    if (context.uniqueApproach && context.uniqueApproach.length > 30) {
+      score += 10;
+    }
+
+    // Gap analysis (why existing solutions inadequate): 10 points
+    if (context.gapsInSolutions && context.gapsInSolutions.length > 30) {
+      score += 10;
+    }
+
+    // Community impact without organization stated: 5 points
+    if (context.impactWithoutOrg && context.impactWithoutOrg.length > 20) {
+      score += 5;
+    }
+
+    // Bonus points
+    if (evidence.length > 2) score += 5; // Multiple sources
+    if (this.hasRecentData(evidence)) score += 5; // Recent data
+
+    return Math.min(score, 100);
+  }
+
+  /**
+   * Check if text contains quantifiable data (numbers, percentages, statistics)
+   */
+  private containsQuantifiableData(text: string): boolean {
+    // Check if text contains numbers/percentages
+    return /\d+%|\d+\s*(percent|people|students|families|children|youth|individuals)/i.test(text);
+  }
+
+  /**
+   * Check if evidence contains recent data (within 3 years)
+   */
+  private hasRecentData(evidence: any[]): boolean {
+    const currentYear = new Date().getFullYear();
+    return evidence.some((e) => e.year && e.year >= currentYear - 3);
   }
 
   /**
@@ -297,6 +372,72 @@ export class QualityScorerService {
         benefit: 'Demonstrates clear impact focus',
         pointsGain: 15,
         estimatedTime: '3 minutes',
+        category: 'identity',
+      });
+    }
+
+    // Check needs & gaps
+    if (!context.primaryNeed) {
+      recommendations.push({
+        priority: 'critical',
+        action: 'Add your primary need/problem statement',
+        benefit: 'Foundation of every grant proposal - shows why your work is needed',
+        pointsGain: 40,
+        estimatedTime: '5 minutes',
+        category: 'identity',
+      });
+    } else if (!this.containsQuantifiableData(context.primaryNeed)) {
+      recommendations.push({
+        priority: 'high',
+        action: 'Add data/statistics to your need statement',
+        benefit: 'Quantified needs are much more compelling to funders',
+        pointsGain: 20,
+        estimatedTime: '3 minutes',
+        category: 'identity',
+      });
+    }
+
+    const evidence = (context.needEvidence as any[]) || [];
+    if (evidence.length < 2) {
+      recommendations.push({
+        priority: 'high',
+        action: `Add ${2 - evidence.length} more data points with sources`,
+        benefit: 'Evidence-based needs demonstrate urgency and credibility',
+        pointsGain: 15,
+        estimatedTime: '5 minutes',
+        category: 'identity',
+      });
+    }
+
+    if (!context.uniqueApproach) {
+      recommendations.push({
+        priority: 'high',
+        action: "Describe your organization's unique approach",
+        benefit: 'Shows why YOU are the right organization to address this need',
+        pointsGain: 10,
+        estimatedTime: '3 minutes',
+        category: 'identity',
+      });
+    }
+
+    if (!context.gapsInSolutions) {
+      recommendations.push({
+        priority: 'medium',
+        action: 'Explain gaps in existing solutions',
+        benefit: 'Demonstrates why new funding is necessary',
+        pointsGain: 10,
+        estimatedTime: '3 minutes',
+        category: 'identity',
+      });
+    }
+
+    if (!context.impactWithoutOrg) {
+      recommendations.push({
+        priority: 'medium',
+        action: 'Describe what would happen without your organization',
+        benefit: 'Shows the urgency and importance of your work',
+        pointsGain: 5,
+        estimatedTime: '2 minutes',
         category: 'identity',
       });
     }
