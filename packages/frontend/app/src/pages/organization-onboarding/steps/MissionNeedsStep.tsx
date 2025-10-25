@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Button, Input, toast } from '@afk/component';
+import { useState, useEffect } from 'react';
+import { Button, Input, toast, Loading } from '@afk/component';
 import { useOrganizationOnboardingStore } from '@/store/organization-onboarding';
 import { DocumentUpload } from '../components/DocumentUpload';
 import { cn } from '@/lib/utils';
@@ -11,7 +11,7 @@ interface MissionNeedsStepProps {
 }
 
 export const MissionNeedsStep: React.FC<MissionNeedsStepProps> = ({ organizationId, onNext, onPrev }) => {
-  const { saveMission, saveNeeds, extractFromWebsite, extracting } = useOrganizationOnboardingStore();
+  const { saveMission, saveNeeds, extractFromWebsite, extracting, loadOrganizationContext, organizationContext } = useOrganizationOnboardingStore();
 
   const [activeTab, setActiveTab] = useState<'mission' | 'needs'>('mission');
   const [importMethod, setImportMethod] = useState<'website' | 'document'>('website');
@@ -35,6 +35,45 @@ export const MissionNeedsStep: React.FC<MissionNeedsStepProps> = ({ organization
   });
 
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // Load existing data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setInitialLoading(true);
+        await loadOrganizationContext(organizationId);
+      } catch (error) {
+        console.error('Failed to load organization context:', error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    loadData();
+  }, [organizationId, loadOrganizationContext]);
+
+  // Populate form when data is loaded
+  useEffect(() => {
+    if (organizationContext) {
+      setMissionData({
+        mission: organizationContext.mission || '',
+        vision: organizationContext.vision || '',
+        values: organizationContext.values || [],
+        focusAreas: organizationContext.focusAreas || [],
+        geographicScope: organizationContext.geographicScope || '',
+        targetPopulation: organizationContext.targetPopulation || '',
+      });
+
+      setNeedsData({
+        primaryNeed: organizationContext.primaryNeed || '',
+        needEvidence: organizationContext.needEvidence || [],
+        impactWithoutOrg: organizationContext.impactWithoutOrg || '',
+        gapsInSolutions: organizationContext.gapsInSolutions || '',
+        uniqueApproach: organizationContext.uniqueApproach || '',
+      });
+    }
+  }, [organizationContext]);
 
   const handleExtractFromWebsite = async () => {
     if (!websiteUrl) {
@@ -86,6 +125,14 @@ export const MissionNeedsStep: React.FC<MissionNeedsStepProps> = ({ organization
       setLoading(false);
     }
   };
+
+  if (initialLoading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-8 flex items-center justify-center min-h-[400px]">
+        <Loading />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-8">

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Button, Input, toast } from '@afk/component';
+import { Button, Input, toast, Loading } from '@afk/component';
 import { useOrganizationOnboardingStore } from '@/store/organization-onboarding';
+import { useProposalsStore } from '@/store/proposals';
 
 interface BasicInfoStepProps {
   organizationId: string;
@@ -10,7 +11,8 @@ interface BasicInfoStepProps {
 }
 
 export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ organizationId, onNext, onPrev }) => {
-  const { saveBasicInfo, skipOnboarding } = useOrganizationOnboardingStore();
+  const { saveBasicInfo, skipOnboarding, loadOrganizationContext, organizationContext } = useOrganizationOnboardingStore();
+  const { organizations } = useProposalsStore();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -26,6 +28,42 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ organizationId, on
   });
 
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // Load existing data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setInitialLoading(true);
+        await loadOrganizationContext(organizationId);
+      } catch (error) {
+        console.error('Failed to load organization context:', error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    loadData();
+  }, [organizationId, loadOrganizationContext]);
+
+  // Populate form when data is loaded
+  useEffect(() => {
+    const currentOrg = organizations.find(org => org.id === organizationId);
+
+    if (currentOrg || organizationContext) {
+      setFormData({
+        name: currentOrg?.name || '',
+        legalName: '',
+        taxId: '',
+        type: '501(c)(3)',
+        yearFounded: organizationContext?.yearFounded || new Date().getFullYear() - 5,
+        websiteUrl: currentOrg?.website || '',
+        email: '',
+        phone: '',
+        address: '',
+      });
+    }
+  }, [organizations, organizationContext, organizationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +86,14 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ organizationId, on
     toast.info('Progress saved! You can resume anytime from your organization profile.');
     navigate('/proposals');
   };
+
+  if (initialLoading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-8 flex items-center justify-center min-h-[400px]">
+        <Loading />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-8">

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Button, Input, toast } from '@afk/component';
+import { Button, Input, toast, Loading } from '@afk/component';
 import { useOrganizationOnboardingStore } from '@/store/organization-onboarding';
 import { cn } from '@/lib/utils';
 
@@ -40,13 +40,14 @@ const emptyProgram: ProgramData = {
 };
 
 export const ProgramsStep: React.FC<ProgramsStepProps> = ({ organizationId, onNext, onPrev }) => {
-  const { addProgram, qualityScore, skipOnboarding } = useOrganizationOnboardingStore();
+  const { addProgram, qualityScore, skipOnboarding, loadOrganizationContext, organizationContext } = useOrganizationOnboardingStore();
   const navigate = useNavigate();
 
   const [programs, setPrograms] = useState<ProgramData[]>([]);
   const [currentProgram, setCurrentProgram] = useState<ProgramData>(emptyProgram);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // For outcomes array (comma-separated input)
   const [outcomesInput, setOutcomesInput] = useState('');
@@ -54,6 +55,32 @@ export const ProgramsStep: React.FC<ProgramsStepProps> = ({ organizationId, onNe
   // For need evidence
   const [evidenceStatistic, setEvidenceStatistic] = useState('');
   const [evidenceSource, setEvidenceSource] = useState('');
+
+  // Load existing data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setInitialLoading(true);
+        await loadOrganizationContext(organizationId);
+      } catch (error) {
+        console.error('Failed to load organization context:', error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    loadData();
+  }, [organizationId, loadOrganizationContext]);
+
+  // Populate programs when data is loaded
+  useEffect(() => {
+    if (organizationContext && organizationContext.programs) {
+      const loadedPrograms = Array.isArray(organizationContext.programs)
+        ? organizationContext.programs
+        : [];
+      setPrograms(loadedPrograms);
+    }
+  }, [organizationContext]);
 
   const handleAddEvidence = () => {
     if (!evidenceStatistic || !evidenceSource) {
@@ -153,6 +180,14 @@ export const ProgramsStep: React.FC<ProgramsStepProps> = ({ organizationId, onNe
     toast.info('Progress saved! You can resume anytime from your organization profile.');
     navigate('/proposals');
   };
+
+  if (initialLoading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-8 flex items-center justify-center min-h-[400px]">
+        <Loading />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-8">
