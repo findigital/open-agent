@@ -42,6 +42,44 @@ export interface ExtractedData {
   confidence: number;
 }
 
+export interface OrganizationContext {
+  id: string;
+  organizationId: string;
+  // Identity
+  mission?: string;
+  vision?: string;
+  values?: string[];
+  focusAreas?: string[];
+  geographicScope?: string;
+  targetPopulation?: string;
+  yearFounded?: number;
+  annualBudget?: string;
+  // Needs & Gaps
+  primaryNeed?: string;
+  needEvidence?: any;
+  impactWithoutOrg?: string;
+  gapsInSolutions?: string;
+  uniqueApproach?: string;
+  // Programs
+  programs: any;
+  // Capacity
+  staffCount?: number;
+  fullTimeStaff?: number;
+  partTimeStaff?: number;
+  volunteers?: number;
+  boardCount?: number;
+  leadership?: any;
+  // Financial
+  totalRevenue?: number;
+  totalExpenses?: number;
+  programExpensePct?: number;
+  adminExpensePct?: number;
+  fundingSourcesJson?: any;
+  // Impact
+  impactMetrics: any;
+  successStories: any;
+}
+
 export interface OrganizationOnboardingState {
   currentStep: number;
   progress: OnboardingProgress | null;
@@ -49,6 +87,7 @@ export interface OrganizationOnboardingState {
   recommendations: Recommendation[];
   extracting: boolean;
   extractedData: ExtractedData | null;
+  organizationContext: OrganizationContext | null;
 
   // Skip/Resume state
   lastDismissedAt: Date | null;
@@ -59,6 +98,7 @@ export interface OrganizationOnboardingState {
   loadProgress: (organizationId: string) => Promise<void>;
   loadQualityScore: (organizationId: string) => Promise<void>;
   loadRecommendations: (organizationId: string) => Promise<void>;
+  loadOrganizationContext: (organizationId: string) => Promise<void>;
 
   saveBasicInfo: (organizationId: string, data: any) => Promise<void>;
   saveMission: (organizationId: string, data: any) => Promise<void>;
@@ -87,6 +127,7 @@ export const useOrganizationOnboardingStore = create<OrganizationOnboardingState
   recommendations: [],
   extracting: false,
   extractedData: null,
+  organizationContext: null,
   lastDismissedAt: null,
   dismissalCount: 0,
 
@@ -176,6 +217,49 @@ export const useOrganizationOnboardingStore = create<OrganizationOnboardingState
     });
 
     set({ recommendations: res.data.getOnboardingRecommendations });
+  },
+
+  loadOrganizationContext: async (organizationId: string) => {
+    const res = await gql({
+      query: `
+        query GetOrganizationContext($organizationId: ID!) {
+          getOrganizationContext(organizationId: $organizationId) {
+            id
+            organizationId
+            mission
+            vision
+            values
+            focusAreas
+            geographicScope
+            targetPopulation
+            yearFounded
+            annualBudget
+            primaryNeed
+            needEvidence
+            impactWithoutOrg
+            gapsInSolutions
+            uniqueApproach
+            programs
+            staffCount
+            fullTimeStaff
+            partTimeStaff
+            volunteers
+            boardCount
+            leadership
+            totalRevenue
+            totalExpenses
+            programExpensePct
+            adminExpensePct
+            fundingSourcesJson
+            impactMetrics
+            successStories
+          }
+        }
+      `,
+      variables: { organizationId },
+    });
+
+    set({ organizationContext: res.data.getOrganizationContext });
   },
 
   saveBasicInfo: async (organizationId: string, data: any) => {

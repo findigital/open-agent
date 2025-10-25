@@ -14,6 +14,7 @@ import { CapacityInput } from './dto/capacity.input';
 import { OnboardingProgressOutput } from './dto/onboarding-status.output';
 import { QualityScoreOutput, RecommendationOutput } from './dto/quality-score.output';
 import { ExtractionResultOutput } from './dto/extraction.output';
+import { OrganizationContextOutput } from './dto/organization-context.output';
 
 @Resolver()
 @UseGuards(AuthGuard, OrganizationMemberGuard)
@@ -115,6 +116,15 @@ export class OnboardingResolver {
   ): Promise<OnboardingProgressOutput | null> {
     this.logger.log(`Getting onboarding status for org ${organizationId}`);
     return this.onboardingService.getStatus(organizationId) as any;
+  }
+
+  @Query(() => OrganizationContextOutput, { nullable: true })
+  async getOrganizationContext(
+    @CurrentUser() user: { id: string },
+    @Args('organizationId') organizationId: string
+  ): Promise<OrganizationContextOutput | null> {
+    this.logger.log(`Getting organization context for org ${organizationId}`);
+    return this.onboardingService.getContext(organizationId) as any;
   }
 
   @Mutation(() => ExtractionResultOutput)
