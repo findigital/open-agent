@@ -52,6 +52,7 @@ import { ApprovalModule } from './modules/approval/approval.module';
 import { CommentModule } from './modules/comment/comment.module';
 import { AiModule } from './modules/ai/ai.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
 
 export const FunctionalityModules = [
   ClsModule.forRoot({
@@ -157,6 +158,7 @@ export function buildAppModule(env: Env) {
     // proposal saas modules
     .use(
       OrganizationModule,
+      OnboardingModule,
       WorkspaceModule,
       ProposalModule,
       TemplateModule,
