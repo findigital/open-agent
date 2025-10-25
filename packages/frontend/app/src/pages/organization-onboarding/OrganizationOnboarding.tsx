@@ -5,6 +5,7 @@ import { ArrowLeftIcon, ArrowRightIcon } from '@blocksuite/icons/rc';
 
 import { cn } from '@/lib/utils';
 import { useOrganizationOnboardingStore } from '@/store/organization-onboarding';
+import { OrganizationSelector } from '@/components/organization-selector';
 import { QualityMeter } from './components/QualityMeter';
 import { ProgressStepper } from './components/ProgressStepper';
 import { ResumePrompt } from './components/ResumePrompt';
@@ -117,11 +118,49 @@ export const OrganizationOnboarding = () => {
     );
   }
 
-  if (error || !organizationId) {
+  if (error && organizationId) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-red-600">{error || 'No organization selected'}</p>
+        <p className="text-red-600">{error}</p>
         <Button onClick={() => navigate('/proposals')}>Back to Dashboard</Button>
+      </div>
+    );
+  }
+
+  // Show organization selector if no organization is selected
+  if (!organizationId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <div className="bg-white border border-gray-200 rounded-lg p-8 max-w-md w-full shadow-sm">
+          <h1 className="text-2xl font-bold mb-2">Organization Profile Setup</h1>
+          <p className="text-sm text-gray-600 mb-6">
+            Complete your organization profile to enable AI-powered proposal generation.
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Organization
+              </label>
+              <OrganizationSelector
+                className="w-full"
+                onChange={(orgId) => {
+                  navigate(`/organization/onboarding?organizationId=${orgId}`);
+                }}
+              />
+            </div>
+
+            <div className="pt-4 border-t border-gray-200">
+              <Button
+                variant="text"
+                onClick={() => navigate('/proposals')}
+                className="w-full"
+              >
+                Back to Dashboard
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

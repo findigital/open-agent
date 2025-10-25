@@ -13,6 +13,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import { cn } from '@/lib/utils';
 import { type Proposal, useProposalsStore } from '@/store/proposals';
+import { OrganizationSelector } from '@/components/organization-selector';
 
 import { AutoSidebarPadding } from '../layout/auto-sidebar-padding';
 
@@ -273,8 +274,22 @@ export const ProposalsDashboard = () => {
           </div>
         </div>
 
-        {/* Workspace & Status Selectors */}
+        {/* Organization, Workspace & Status Selectors */}
         <div className="flex gap-3">
+          {organizations.length > 1 && (
+            <OrganizationSelector
+              className="w-64"
+              onChange={(orgId, org) => {
+                // When org changes, reset to first workspace
+                if (org.workspaces.length > 0) {
+                  const firstWorkspace = org.workspaces[0];
+                  setCurrentWorkspace(firstWorkspace.id);
+                  refreshProposals(firstWorkspace.id);
+                }
+              }}
+            />
+          )}
+
           <Select
             value={currentWorkspaceId || ''}
             onValueChange={value => {

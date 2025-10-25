@@ -20,6 +20,7 @@ import { oauthLoginLoader, OAuthLoginPage } from './pages/oauth-login';
 import { OnboardingPage } from './pages/onboarding';
 import { OrganizationOnboarding } from './pages/organization-onboarding';
 import { ProposalsDashboard, ProposalEditor, CreateProposal, DocumentsLibrary, GrantsSearch, TemplatesLibrary, RFPImport, BudgetBuilder } from './pages/proposals';
+import { SettingsPage } from './pages/settings/settings';
 import { redirectProxyLoader, RedirectProxyPage } from './pages/redirect';
 import { SignInPage } from './pages/sign-in';
 import { useOnboardingStore } from './store/onboarding';
@@ -122,7 +123,7 @@ function App() {
           path="/settings"
           element={
             <AuthGuard>
-              <div className="p-8">Settings (coming soon)</div>
+              <SettingsPage />
             </AuthGuard>
           }
         />
