@@ -18,6 +18,7 @@ import { MagicLinkPage } from './pages/magic-link';
 import { OAuthCallbackPage } from './pages/oauth-callback';
 import { oauthLoginLoader, OAuthLoginPage } from './pages/oauth-login';
 import { OnboardingPage } from './pages/onboarding';
+import { OrganizationOnboarding } from './pages/organization-onboarding';
 import { ProposalsDashboard, ProposalEditor, CreateProposal, DocumentsLibrary, GrantsSearch, TemplatesLibrary, RFPImport, BudgetBuilder } from './pages/proposals';
 import { redirectProxyLoader, RedirectProxyPage } from './pages/redirect';
 import { SignInPage } from './pages/sign-in';
@@ -106,6 +107,14 @@ function App() {
           element={
             <AuthGuard>
               <ProposalsPage />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/organization/onboarding"
+          element={
+            <AuthGuard>
+              <OrganizationOnboarding />
             </AuthGuard>
           }
         />

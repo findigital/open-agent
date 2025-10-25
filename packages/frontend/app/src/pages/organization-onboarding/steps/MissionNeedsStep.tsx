@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Input, toast } from '@afk/component';
 import { useOrganizationOnboardingStore } from '@/store/organization-onboarding';
+import { DocumentUpload } from '../components/DocumentUpload';
 import { cn } from '@/lib/utils';
 
 interface MissionNeedsStepProps {
@@ -13,6 +14,7 @@ export const MissionNeedsStep: React.FC<MissionNeedsStepProps> = ({ organization
   const { saveMission, saveNeeds, extractFromWebsite, extracting } = useOrganizationOnboardingStore();
 
   const [activeTab, setActiveTab] = useState<'mission' | 'needs'>('mission');
+  const [importMethod, setImportMethod] = useState<'website' | 'document'>('website');
   const [websiteUrl, setWebsiteUrl] = useState('');
 
   const [missionData, setMissionData] = useState({
@@ -45,16 +47,28 @@ export const MissionNeedsStep: React.FC<MissionNeedsStepProps> = ({ organization
       toast.success(`Extracted with ${Math.round(extracted.confidence * 100)}% confidence!`);
 
       // Pre-fill form with extracted data
-      if (extracted.mission) setMissionData((d) => ({ ...d, mission: extracted.mission! }));
-      if (extracted.vision) setMissionData((d) => ({ ...d, vision: extracted.vision! }));
-      if (extracted.focusAreas) setMissionData((d) => ({ ...d, focusAreas: extracted.focusAreas! }));
-      if (extracted.primaryNeed) setNeedsData((d) => ({ ...d, primaryNeed: extracted.primaryNeed! }));
-      if (extracted.needEvidence) setNeedsData((d) => ({ ...d, needEvidence: extracted.needEvidence! }));
-      if (extracted.uniqueApproach) setNeedsData((d) => ({ ...d, uniqueApproach: extracted.uniqueApproach! }));
+      handleExtractionComplete(extracted);
     } catch (error) {
       toast.error('Failed to extract from website');
       console.error(error);
     }
+  };
+
+  const handleExtractionComplete = (extracted: any) => {
+    // Pre-fill mission data
+    if (extracted.mission) setMissionData((d) => ({ ...d, mission: extracted.mission! }));
+    if (extracted.vision) setMissionData((d) => ({ ...d, vision: extracted.vision! }));
+    if (extracted.focusAreas) setMissionData((d) => ({ ...d, focusAreas: extracted.focusAreas! }));
+    if (extracted.geographicScope) setMissionData((d) => ({ ...d, geographicScope: extracted.geographicScope! }));
+    if (extracted.targetPopulation) setMissionData((d) => ({ ...d, targetPopulation: extracted.targetPopulation! }));
+    if (extracted.values) setMissionData((d) => ({ ...d, values: extracted.values! }));
+
+    // Pre-fill needs data
+    if (extracted.primaryNeed) setNeedsData((d) => ({ ...d, primaryNeed: extracted.primaryNeed! }));
+    if (extracted.needEvidence) setNeedsData((d) => ({ ...d, needEvidence: extracted.needEvidence! }));
+    if (extracted.uniqueApproach) setNeedsData((d) => ({ ...d, uniqueApproach: extracted.uniqueApproach! }));
+    if (extracted.gapsInSolutions) setNeedsData((d) => ({ ...d, gapsInSolutions: extracted.gapsInSolutions! }));
+    if (extracted.impactWithoutOrg) setNeedsData((d) => ({ ...d, impactWithoutOrg: extracted.impactWithoutOrg! }));
   };
 
   const handleNext = async () => {
@@ -78,21 +92,62 @@ export const MissionNeedsStep: React.FC<MissionNeedsStepProps> = ({ organization
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Mission & Community Needs</h2>
       <p className="text-gray-600 mb-6">Tell us about your mission and the needs you address.</p>
 
-      {/* Website Import */}
+      {/* Quick Import Section */}
       <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h3 className="font-semibold text-sm text-blue-900 mb-2">🚀 Quick Import from Website</h3>
-        <div className="flex gap-2">
-          <Input
-            value={websiteUrl}
-            onChange={setWebsiteUrl}
-            placeholder="https://your-organization.org"
-            className="flex-1"
-          />
-          <Button onClick={handleExtractFromWebsite} disabled={extracting} variant="primary">
-            {extracting ? 'Extracting...' : 'Import'}
-          </Button>
+        <h3 className="font-semibold text-sm text-blue-900 mb-3">🚀 Quick Import with AI</h3>
+
+        {/* Import Method Tabs */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setImportMethod('website')}
+            className={cn(
+              'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+              importMethod === 'website'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-blue-900 hover:bg-blue-100'
+            )}
+          >
+            🌐 From Website
+          </button>
+          <button
+            onClick={() => setImportMethod('document')}
+            className={cn(
+              'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+              importMethod === 'document'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-blue-900 hover:bg-blue-100'
+            )}
+          >
+            📄 From Document
+          </button>
         </div>
-        <p className="text-xs text-blue-700 mt-2">AI will extract your mission, needs, and programs automatically</p>
+
+        {/* Website Import */}
+        {importMethod === 'website' && (
+          <div>
+            <div className="flex gap-2">
+              <Input
+                value={websiteUrl}
+                onChange={setWebsiteUrl}
+                placeholder="https://your-organization.org"
+                className="flex-1"
+              />
+              <Button onClick={handleExtractFromWebsite} disabled={extracting} variant="primary">
+                {extracting ? 'Extracting...' : 'Import'}
+              </Button>
+            </div>
+            <p className="text-xs text-blue-700 mt-2">
+              AI will extract your mission, needs, and programs automatically from your website
+            </p>
+          </div>
+        )}
+
+        {/* Document Import */}
+        {importMethod === 'document' && (
+          <div>
+            <DocumentUpload organizationId={organizationId} onExtractionComplete={handleExtractionComplete} />
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
