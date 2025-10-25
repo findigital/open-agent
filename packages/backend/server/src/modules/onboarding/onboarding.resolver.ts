@@ -3,6 +3,7 @@ import { UseGuards, Logger } from '@nestjs/common';
 import { CurrentUser } from '@afk/server/base';
 import { OnboardingService } from './onboarding.service';
 import { QualityScorerService } from './quality-scorer.service';
+import { OnboardingAgentService } from './onboarding-agent.service';
 import { BasicInfoInput } from './dto/basic-info.input';
 import { MissionInput } from './dto/mission.input';
 import { SaveNeedsInput } from './dto/needs.input';
@@ -10,6 +11,7 @@ import { ProgramInput } from './dto/program.input';
 import { CapacityInput } from './dto/capacity.input';
 import { OnboardingProgressOutput } from './dto/onboarding-status.output';
 import { QualityScoreOutput, RecommendationOutput } from './dto/quality-score.output';
+import { ExtractionResultOutput } from './dto/extraction.output';
 
 @Resolver()
 export class OnboardingResolver {
@@ -17,7 +19,8 @@ export class OnboardingResolver {
 
   constructor(
     private onboardingService: OnboardingService,
-    private qualityScorer: QualityScorerService
+    private qualityScorer: QualityScorerService,
+    private onboardingAgent: OnboardingAgentService
   ) {}
 
   @Mutation(() => OnboardingProgressOutput)
@@ -109,5 +112,25 @@ export class OnboardingResolver {
   ): Promise<OnboardingProgressOutput | null> {
     this.logger.log(`Getting onboarding status for org ${organizationId}`);
     return this.onboardingService.getStatus(organizationId) as any;
+  }
+
+  @Mutation(() => ExtractionResultOutput)
+  async extractFromDocument(
+    @CurrentUser() user: { id: string },
+    @Args('organizationId') organizationId: string,
+    @Args('documentContent') documentContent: string
+  ): Promise<ExtractionResultOutput> {
+    this.logger.log(`Extracting from document for org ${organizationId} (${documentContent.length} chars)`);
+    return this.onboardingAgent.extractOrganizationData(organizationId, documentContent) as any;
+  }
+
+  @Mutation(() => ExtractionResultOutput)
+  async extractFromWebsite(
+    @CurrentUser() user: { id: string },
+    @Args('organizationId') organizationId: string,
+    @Args('websiteUrl') websiteUrl: string
+  ): Promise<ExtractionResultOutput> {
+    this.logger.log(`Extracting from website ${websiteUrl} for org ${organizationId}`);
+    return this.onboardingAgent.extractFromWebsite(organizationId, websiteUrl) as any;
   }
 }
