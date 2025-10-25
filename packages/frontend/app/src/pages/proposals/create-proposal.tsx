@@ -7,6 +7,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { cn } from '@/lib/utils';
 import { gql } from '@/lib/gql';
 import { useProposalsStore } from '@/store/proposals';
+import { useOrganizationOnboardingStore } from '@/store/organization-onboarding';
 
 import { AutoSidebarPadding } from '../layout/auto-sidebar-padding';
 
@@ -86,11 +87,13 @@ export const CreateProposal = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentOrganization, currentWorkspaceId } = useProposalsStore();
+  const { qualityScore, loadQualityScore, shouldShowBanner, dismissBanner } = useOrganizationOnboardingStore();
 
   const [step, setStep] = useState<'template' | 'details'>('template');
   const [loading, setLoading] = useState(false);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [showBanner, setShowBanner] = useState(false);
 
   // Form state
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -106,6 +109,27 @@ export const CreateProposal = () => {
       setGrantId(grantIdFromUrl);
     }
   }, [searchParams]);
+
+  // Load quality score on mount
+  useEffect(() => {
+    const loadScore = async () => {
+      if (currentOrganization?.id) {
+        try {
+          await loadQualityScore(currentOrganization.id);
+        } catch (error) {
+          console.error('Failed to load quality score:', error);
+        }
+      }
+    };
+    loadScore();
+  }, [currentOrganization?.id, loadQualityScore]);
+
+  // Check if we should show banner
+  useEffect(() => {
+    if (qualityScore) {
+      setShowBanner(shouldShowBanner('create_proposal'));
+    }
+  }, [qualityScore, shouldShowBanner]);
 
   // Load templates on mount
   useState(() => {
@@ -150,6 +174,19 @@ export const CreateProposal = () => {
 
     loadTemplates();
   });
+
+  const handleDismissBanner = async () => {
+    if (currentOrganization?.id) {
+      await dismissBanner(currentOrganization.id, 'create_proposal');
+      setShowBanner(false);
+    }
+  };
+
+  const goToOnboarding = () => {
+    if (currentOrganization?.id) {
+      navigate(`/organization/onboarding?organizationId=${currentOrganization.id}`);
+    }
+  };
 
   const handleCreate = async () => {
     if (!selectedTemplate || !title.trim() || !currentWorkspaceId) {
@@ -211,6 +248,49 @@ export const CreateProposal = () => {
           <p className="text-sm text-gray-600 mt-1">{currentOrganization.name}</p>
         )}
       </div>
+
+      {/* Onboarding Banner */}
+      {showBanner && qualityScore && (
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-4">
+          <div className="flex items-start gap-4">
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                📊 Complete your organization profile for better proposals
+              </h3>
+              <p className="text-sm text-blue-100 mt-1">
+                AI-powered proposal writing works best with a complete profile. Takes 5-10 minutes.
+              </p>
+              <div className="mt-2 flex items-center gap-4 text-xs">
+                <span className="bg-white/20 px-2 py-1 rounded">
+                  Current quality: {qualityScore.overall}/100
+                </span>
+                {qualityScore.overall < 75 && (
+                  <span className="text-blue-200">
+                    Complete your profile to unlock AI recommendations
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={goToOnboarding}
+                className="bg-white text-blue-600 hover:bg-blue-50"
+                size="small"
+              >
+                Complete Profile
+              </Button>
+              <Button
+                onClick={handleDismissBanner}
+                variant="text"
+                className="text-white hover:bg-white/10"
+                size="small"
+              >
+                Skip for now
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Progress Steps */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">

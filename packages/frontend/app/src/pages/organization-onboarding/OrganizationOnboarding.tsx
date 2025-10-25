@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useOrganizationOnboardingStore } from '@/store/organization-onboarding';
 import { QualityMeter } from './components/QualityMeter';
 import { ProgressStepper } from './components/ProgressStepper';
+import { ResumePrompt } from './components/ResumePrompt';
 import { WelcomeStep } from './steps/WelcomeStep';
 import { BasicInfoStep } from './steps/BasicInfoStep';
 import { MissionNeedsStep } from './steps/MissionNeedsStep';
@@ -33,11 +34,13 @@ export const OrganizationOnboarding = () => {
   const {
     currentStep,
     qualityScore,
+    progress,
     loadProgress,
     loadQualityScore,
     startOnboarding,
     setCurrentStep,
     reset,
+    resumeOnboarding,
   } = useOrganizationOnboardingStore();
 
   const [loading, setLoading] = useState(true);
@@ -92,6 +95,18 @@ export const OrganizationOnboarding = () => {
     if (step <= currentStep) {
       setCurrentStep(step);
     }
+  };
+
+  const handleResume = async () => {
+    if (!organizationId) return;
+    await resumeOnboarding(organizationId);
+  };
+
+  const handleStartOver = async () => {
+    if (!organizationId) return;
+    reset();
+    await startOnboarding(organizationId);
+    setCurrentStep(0);
   };
 
   if (loading) {
@@ -150,6 +165,17 @@ export const OrganizationOnboarding = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-8">
+        {/* Resume Prompt - Show if there's saved progress */}
+        {progress && progress.currentStep > 0 && !progress.isComplete && currentStep === progress.currentStep && (
+          <div className="mb-6">
+            <ResumePrompt
+              organizationId={organizationId}
+              onResume={handleResume}
+              onStartOver={handleStartOver}
+            />
+          </div>
+        )}
+
         <div className={cn('grid gap-8', showSidebar ? 'grid-cols-3' : 'grid-cols-1')}>
           {/* Step Content */}
           <div className={cn(showSidebar ? 'col-span-2' : 'col-span-1')}>

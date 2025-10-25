@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Button, Input, toast } from '@afk/component';
 import { useOrganizationOnboardingStore } from '@/store/organization-onboarding';
 import { cn } from '@/lib/utils';
@@ -39,7 +40,8 @@ const emptyProgram: ProgramData = {
 };
 
 export const ProgramsStep: React.FC<ProgramsStepProps> = ({ organizationId, onNext, onPrev }) => {
-  const { addProgram, qualityScore } = useOrganizationOnboardingStore();
+  const { addProgram, qualityScore, skipOnboarding } = useOrganizationOnboardingStore();
+  const navigate = useNavigate();
 
   const [programs, setPrograms] = useState<ProgramData[]>([]);
   const [currentProgram, setCurrentProgram] = useState<ProgramData>(emptyProgram);
@@ -144,6 +146,12 @@ export const ProgramsStep: React.FC<ProgramsStepProps> = ({ organizationId, onNe
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSkip = async () => {
+    await skipOnboarding(organizationId);
+    toast.info('Progress saved! You can resume anytime from your organization profile.');
+    navigate('/proposals');
   };
 
   return (
@@ -367,17 +375,24 @@ export const ProgramsStep: React.FC<ProgramsStepProps> = ({ organizationId, onNe
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between pt-6 border-t border-gray-200 mt-8">
-        <Button onClick={onPrev} variant="outline" disabled={loading}>
-          Back
-        </Button>
-        <div className="text-sm text-gray-600">
+      <div className="pt-6 border-t border-gray-200 mt-8">
+        <div className="flex items-center justify-center mb-4 text-sm text-gray-600">
           {programs.length} program{programs.length !== 1 ? 's' : ''} added
           {qualityScore && ` • Quality Score: ${qualityScore.overall}/100`}
         </div>
-        <Button onClick={handleNext} variant="primary" disabled={loading || programs.length === 0}>
-          {loading ? 'Saving...' : 'Continue'}
-        </Button>
+        <div className="flex items-center justify-between">
+          <Button onClick={onPrev} variant="outline" disabled={loading}>
+            Back
+          </Button>
+          <div className="flex gap-3">
+            <Button onClick={handleSkip} variant="text" className="text-gray-500" disabled={loading}>
+              Skip for now
+            </Button>
+            <Button onClick={handleNext} variant="primary" disabled={loading || programs.length === 0}>
+              {loading ? 'Saving...' : 'Continue'}
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

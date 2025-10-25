@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Button, toast } from '@afk/component';
 import { useOrganizationOnboardingStore } from '@/store/organization-onboarding';
 import { QualityMeter } from '../components/QualityMeter';
@@ -11,8 +12,9 @@ interface ReviewStepProps {
 }
 
 export const ReviewStep: React.FC<ReviewStepProps> = ({ organizationId, onNext, onPrev }) => {
-  const { qualityScore, recommendations, loadRecommendations, completeOnboarding } =
+  const { qualityScore, recommendations, loadRecommendations, completeOnboarding, skipOnboarding } =
     useOrganizationOnboardingStore();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
@@ -43,6 +45,12 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ organizationId, onNext, 
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSkip = async () => {
+    await skipOnboarding(organizationId);
+    toast.info('Progress saved! You can complete your profile later.');
+    navigate('/proposals');
   };
 
   const getScoreColor = (score: number): string => {
@@ -250,9 +258,14 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ organizationId, onNext, 
         <Button onClick={onPrev} variant="outline" disabled={loading}>
           Back
         </Button>
-        <Button onClick={handleComplete} variant="primary" disabled={loading} size="large">
-          {loading ? 'Completing...' : 'Complete Onboarding 🎉'}
-        </Button>
+        <div className="flex gap-3">
+          <Button onClick={handleSkip} variant="text" className="text-gray-500" disabled={loading}>
+            Complete later
+          </Button>
+          <Button onClick={handleComplete} variant="primary" disabled={loading} size="large">
+            {loading ? 'Completing...' : 'Complete Onboarding 🎉'}
+          </Button>
+        </div>
       </div>
     </div>
   );

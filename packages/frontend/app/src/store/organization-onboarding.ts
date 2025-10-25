@@ -50,6 +50,10 @@ export interface OrganizationOnboardingState {
   extracting: boolean;
   extractedData: ExtractedData | null;
 
+  // Skip/Resume state
+  lastDismissedAt: Date | null;
+  dismissalCount: number;
+
   // Actions
   startOnboarding: (organizationId: string) => Promise<void>;
   loadProgress: (organizationId: string) => Promise<void>;
@@ -66,6 +70,12 @@ export interface OrganizationOnboardingState {
   extractFromDocument: (organizationId: string, documentContent: string) => Promise<ExtractedData>;
   extractFromWebsite: (organizationId: string, websiteUrl: string) => Promise<ExtractedData>;
 
+  // Skip/Resume actions
+  skipOnboarding: (organizationId: string) => Promise<void>;
+  resumeOnboarding: (organizationId: string) => Promise<void>;
+  dismissBanner: (organizationId: string, context: string) => Promise<void>;
+  shouldShowBanner: (context: string) => boolean;
+
   setCurrentStep: (step: number) => void;
   reset: () => void;
 }
@@ -77,6 +87,8 @@ export const useOrganizationOnboardingStore = create<OrganizationOnboardingState
   recommendations: [],
   extracting: false,
   extractedData: null,
+  lastDismissedAt: null,
+  dismissalCount: 0,
 
   startOnboarding: async (organizationId: string) => {
     const res = await gql({
@@ -325,6 +337,73 @@ export const useOrganizationOnboardingStore = create<OrganizationOnboardingState
     set({ currentStep: step });
   },
 
+  // Skip/Resume implementation
+  skipOnboarding: async (organizationId: string) => {
+    const { currentStep } = get();
+
+    // Note: Backend mutation would be called here to save progress
+    // For now, we just update local state
+    // TODO: Add backend mutation when ready
+
+    // Update progress to save current step
+    await gql({
+      query: `
+        mutation UpdateOnboardingProgress($organizationId: ID!, $currentStep: Int!) {
+          updateOnboardingProgress(organizationId: $organizationId, currentStep: $currentStep) {
+            id
+            currentStep
+          }
+        }
+      `,
+      variables: { organizationId, currentStep },
+    });
+  },
+
+  resumeOnboarding: async (organizationId: string) => {
+    // Load saved progress and quality score
+    await get().loadProgress(organizationId);
+    await get().loadQualityScore(organizationId);
+  },
+
+  dismissBanner: async (organizationId: string, context: string) => {
+    const { dismissalCount } = get();
+
+    // Track dismissal in backend (when ready)
+    // For now, just update local state
+    set({
+      dismissalCount: dismissalCount + 1,
+      lastDismissedAt: new Date(),
+    });
+
+    // Store dismissal in localStorage for persistence
+    const dismissalKey = `onboarding_dismissal_${organizationId}_${context}`;
+    localStorage.setItem(dismissalKey, JSON.stringify({
+      count: dismissalCount + 1,
+      lastDismissedAt: new Date().toISOString(),
+    }));
+  },
+
+  shouldShowBanner: (context: string) => {
+    const { dismissalCount, lastDismissedAt, progress, qualityScore } = get();
+
+    // Don't show if permanently dismissed (3+ times)
+    if (dismissalCount >= 3) return false;
+
+    // Don't show if dismissed in last 7 days
+    if (lastDismissedAt) {
+      const daysSinceDismiss = (Date.now() - lastDismissedAt.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceDismiss < 7) return false;
+    }
+
+    // Don't show if already complete
+    if (progress?.isComplete) return false;
+
+    // Don't show if quality score is good (75+)
+    if (qualityScore && qualityScore.overall >= 75) return false;
+
+    return true;
+  },
+
   reset: () => {
     set({
       currentStep: 1,
@@ -333,6 +412,8 @@ export const useOrganizationOnboardingStore = create<OrganizationOnboardingState
       recommendations: [],
       extracting: false,
       extractedData: null,
+      lastDismissedAt: null,
+      dismissalCount: 0,
     });
   },
 }));

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Button, Input, toast } from '@afk/component';
 import { useOrganizationOnboardingStore } from '@/store/organization-onboarding';
 
@@ -9,7 +10,8 @@ interface BasicInfoStepProps {
 }
 
 export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ organizationId, onNext, onPrev }) => {
-  const { saveBasicInfo } = useOrganizationOnboardingStore();
+  const { saveBasicInfo, skipOnboarding } = useOrganizationOnboardingStore();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -39,6 +41,12 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ organizationId, on
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSkip = async () => {
+    await skipOnboarding(organizationId);
+    toast.info('Progress saved! You can resume anytime from your organization profile.');
+    navigate('/proposals');
   };
 
   return (
@@ -112,12 +120,17 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ organizationId, on
         </div>
 
         <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-          <Button onClick={onPrev} variant="outline">
+          <Button onClick={onPrev} variant="outline" disabled={loading}>
             Back
           </Button>
-          <Button type="submit" variant="primary" disabled={loading}>
-            {loading ? 'Saving...' : 'Continue'}
-          </Button>
+          <div className="flex gap-3">
+            <Button onClick={handleSkip} variant="text" className="text-gray-500" disabled={loading}>
+              Skip for now
+            </Button>
+            <Button type="submit" variant="primary" disabled={loading}>
+              {loading ? 'Saving...' : 'Continue'}
+            </Button>
+          </div>
         </div>
       </form>
     </div>

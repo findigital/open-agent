@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Button, Input, toast } from '@afk/component';
 import { useOrganizationOnboardingStore } from '@/store/organization-onboarding';
 
@@ -21,7 +22,8 @@ interface CapacityData {
 }
 
 export const CapacityStep: React.FC<CapacityStepProps> = ({ organizationId, onNext, onPrev }) => {
-  const { saveCapacity, qualityScore } = useOrganizationOnboardingStore();
+  const { saveCapacity, qualityScore, skipOnboarding } = useOrganizationOnboardingStore();
+  const navigate = useNavigate();
 
   const [capacityData, setCapacityData] = useState<CapacityData>({
     staffCount: undefined,
@@ -60,6 +62,12 @@ export const CapacityStep: React.FC<CapacityStepProps> = ({ organizationId, onNe
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSkip = async () => {
+    await skipOnboarding(organizationId);
+    toast.info('Progress saved! You can resume anytime from your organization profile.');
+    navigate('/proposals');
   };
 
   return (
@@ -231,16 +239,25 @@ export const CapacityStep: React.FC<CapacityStepProps> = ({ organizationId, onNe
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between pt-6 border-t border-gray-200 mt-8">
-        <Button onClick={onPrev} variant="outline" disabled={loading}>
-          Back
-        </Button>
-        <div className="text-sm text-gray-600">
-          {qualityScore && `Quality Score: ${qualityScore.overall}/100`}
+      <div className="pt-6 border-t border-gray-200 mt-8">
+        {qualityScore && (
+          <div className="flex items-center justify-center mb-4 text-sm text-gray-600">
+            Quality Score: {qualityScore.overall}/100
+          </div>
+        )}
+        <div className="flex items-center justify-between">
+          <Button onClick={onPrev} variant="outline" disabled={loading}>
+            Back
+          </Button>
+          <div className="flex gap-3">
+            <Button onClick={handleSkip} variant="text" className="text-gray-500" disabled={loading}>
+              Skip for now
+            </Button>
+            <Button onClick={handleNext} variant="primary" disabled={loading}>
+              {loading ? 'Saving...' : 'Continue'}
+            </Button>
+          </div>
         </div>
-        <Button onClick={handleNext} variant="primary" disabled={loading}>
-          {loading ? 'Saving...' : 'Continue'}
-        </Button>
       </div>
     </div>
   );
