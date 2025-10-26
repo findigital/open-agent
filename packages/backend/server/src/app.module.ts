@@ -54,6 +54,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { AwardModule } from './modules/award/award.module';
+import { ImpactReportModule } from './modules/impact-report/impact-report.module';
 
 export const FunctionalityModules = [
   ClsModule.forRoot({
@@ -169,7 +170,8 @@ export function buildAppModule(env: Env) {
       CommentModule,
       AiModule,
       NotificationModule,
-      AwardModule
+      AwardModule,
+      ImpactReportModule
     )
 
     // graphql server only
