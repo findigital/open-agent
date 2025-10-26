@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../../base/prisma/prisma.service';
 import { WorkspaceService } from '../workspace/workspace.service';
 import { ImpactReport, ReportStatus } from '@prisma/client';
+import { ImpactReportAiService } from './impact-report-ai.service';
 
 /**
  * DTOs for Impact Report Operations
@@ -57,6 +58,7 @@ export class ImpactReportService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly workspaceService: WorkspaceService,
+    private readonly aiService: ImpactReportAiService,
   ) {}
 
   /**
@@ -312,8 +314,7 @@ export class ImpactReportService {
   }
 
   /**
-   * Enhance narrative with AI (placeholder for OpenAI integration)
-   * In production, this would call OpenAI API to improve narrative quality
+   * Enhance narrative with AI using Claude
    */
   async enhanceNarrative(
     userId: string,
@@ -321,125 +322,50 @@ export class ImpactReportService {
   ): Promise<{ originalText: string; enhancedText: string; suggestions: string[] }> {
     const report = await this.findById(input.reportId, userId);
 
-    // In production, integrate with OpenAI API
-    // For now, return a structured response that frontend can use
-    const enhancedText = await this.callAIEnhancement(
-      input.section,
-      input.currentText,
-      report,
-    );
+    // Get word count for suggestions
+    const wordCount = input.currentText.split(/\s+/).length;
 
-    const suggestions = this.generateWritingSuggestions(
-      input.section,
-      input.currentText,
-    );
+    // Call AI service for enhancement
+    const { enhancedText, suggestions: aiSuggestions } = await this.aiService.enhanceNarrative({
+      section: input.section,
+      currentText: input.currentText,
+      reportContext: {
+        awardTitle: report.award.proposal.title,
+        peopleServed: report.peopleServed || undefined,
+        programsDelivered: report.programsDelivered || undefined,
+        periodStart: report.reportingPeriodStart,
+        periodEnd: report.reportingPeriodEnd,
+      },
+      organizationContext: {
+        name: report.award.proposal.workspace.organization.name,
+        mission: report.award.proposal.workspace.organization.mission || undefined,
+      },
+    });
+
+    // Get additional writing suggestions
+    const writingSuggestions = await this.aiService.generateWritingSuggestions({
+      section: input.section,
+      currentText: input.currentText,
+      wordCount,
+    });
+
+    // Combine AI suggestions with writing tips
+    const allSuggestions = [...aiSuggestions, ...writingSuggestions];
 
     this.logger.log(
-      `Enhanced ${input.section} for report ${input.reportId}`,
+      `Enhanced ${input.section} for report ${input.reportId} using Claude`,
     );
 
     return {
       originalText: input.currentText,
       enhancedText,
-      suggestions,
+      suggestions: allSuggestions,
     };
   }
 
-  /**
-   * AI enhancement using OpenAI (placeholder implementation)
-   * TODO: Integrate with actual OpenAI API
-   */
-  private async callAIEnhancement(
-    section: string,
-    text: string,
-    report: any,
-  ): Promise<string> {
-    // Placeholder implementation
-    // In production, this would call OpenAI API with a prompt like:
-    /*
-    const prompt = `
-      You are a grant writing expert. Improve the following ${section} section
-      of an impact report for a ${report.award.proposal.title} grant.
-
-      Current text:
-      ${text}
-
-      Please enhance this narrative to be more compelling, specific, and data-driven.
-      Maintain the original facts but improve clarity, flow, and impact.
-    `;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-    });
-
-    return response.choices[0].message.content;
-    */
-
-    // For now, return the original text with a note
-    return `${text}\n\n[AI Enhancement: This section could be enhanced with more specific data, compelling stories, and measurable outcomes. Consider adding concrete examples and quantitative results.]`;
-  }
 
   /**
-   * Generate writing suggestions for a section
-   */
-  private generateWritingSuggestions(
-    section: string,
-    text: string,
-  ): string[] {
-    const suggestions: string[] = [];
-
-    const wordCount = text.split(/\s+/).length;
-    const hasNumbers = /\d+/.test(text);
-    const hasQuotes = /["']/.test(text);
-
-    switch (section) {
-      case 'challenges':
-        if (wordCount < 50) {
-          suggestions.push('Consider expanding on the challenges faced and how you addressed them');
-        }
-        if (!hasNumbers) {
-          suggestions.push('Include specific data or metrics about the challenges');
-        }
-        suggestions.push('Describe both the challenge and your response strategy');
-        break;
-
-      case 'successes':
-        if (wordCount < 50) {
-          suggestions.push('Provide more detail about your achievements and their significance');
-        }
-        if (!hasNumbers) {
-          suggestions.push('Add quantitative results to demonstrate impact');
-        }
-        suggestions.push('Connect successes to original grant objectives');
-        break;
-
-      case 'storiesOfImpact':
-        if (wordCount < 100) {
-          suggestions.push('Impact stories work best with specific examples and personal narratives');
-        }
-        if (!hasQuotes) {
-          suggestions.push('Consider including quotes from beneficiaries or stakeholders');
-        }
-        suggestions.push('Use the "before and after" framework to show transformation');
-        suggestions.push('Include demographic or contextual details to make stories relatable');
-        break;
-
-      case 'lessonsLearned':
-        if (wordCount < 50) {
-          suggestions.push('Elaborate on key insights and how they\'ll inform future work');
-        }
-        suggestions.push('Be honest about what didn\'t work as well as successes');
-        suggestions.push('Describe how lessons will be applied moving forward');
-        break;
-    }
-
-    return suggestions;
-  }
-
-  /**
-   * Generate AI summary of the entire report
+   * Generate AI summary of the entire report using Claude
    */
   async generateSummary(
     reportId: string,
@@ -447,26 +373,28 @@ export class ImpactReportService {
   ): Promise<string> {
     const report = await this.findById(reportId, userId);
 
-    // In production, use OpenAI to create compelling executive summary
-    const summary = `
-Executive Summary - ${report.award.proposal.title}
-Reporting Period: ${this.formatDate(report.reportingPeriodStart)} - ${this.formatDate(report.reportingPeriodEnd)}
-
-${report.peopleServed ? `Served ${report.peopleServed} individuals` : 'Impact metrics pending'}
-${report.programsDelivered ? `Delivered ${report.programsDelivered} programs` : ''}
-
-This report demonstrates significant progress toward grant objectives with measurable outcomes
-and meaningful community impact. Key successes include [summary would be AI-generated from
-actual report content].
-
-Quality Score: ${report.qualityScore}%
-    `.trim();
+    // Use Claude to create compelling executive summary
+    const summary = await this.aiService.generateExecutiveSummary({
+      awardTitle: report.award.proposal.title,
+      periodStart: report.reportingPeriodStart,
+      periodEnd: report.reportingPeriodEnd,
+      peopleServed: report.peopleServed || undefined,
+      programsDelivered: report.programsDelivered || undefined,
+      outcomesAchieved: report.outcomesAchieved || undefined,
+      challenges: report.challenges || undefined,
+      successes: report.successes || undefined,
+      storiesOfImpact: report.storiesOfImpact || undefined,
+      lessonsLearned: report.lessonsLearned || undefined,
+      organizationName: report.award.proposal.workspace.organization.name,
+    });
 
     // Save the generated summary
     await this.prisma.impactReport.update({
       where: { id: reportId },
       data: { aiGeneratedSummary: summary },
     });
+
+    this.logger.log(`Generated AI summary for report ${reportId} using Claude`);
 
     return summary;
   }
