@@ -18,6 +18,7 @@ import {
   getStyleGuidePrompt,
   getVoicePreservationPrompt,
 } from '../config/grant-writing-style-guide';
+import { getCharacterLimitAndScoringPrompt } from '../config/scoring-aware-prompts';
 
 @Injectable()
 export class ProposalAiService {
@@ -739,7 +740,9 @@ Every grant proposal tells a story:
 - Ensure logical flow between subsections
 - Align every element with funder priorities
 
-**Remember:** A great outline produces a great proposal. Be thorough, strategic, and specific.`,
+${getCharacterLimitAndScoringPrompt()}
+
+**Remember:** A great outline produces a great proposal. Be thorough, strategic, and specific. Prioritize sections by scoring weight and plan content to fit character limits.`,
       temperature: 0.4,
       maxTokens: 3072,
     });
@@ -879,20 +882,28 @@ Write in **Markdown format** with:
 - **Reciprocity**: "This grant leverages $X in matching funds..."
 - **Consistency**: "Aligns with your 2023-2025 strategic plan..."
 
+${getCharacterLimitAndScoringPrompt()}
+
 ## Final Check:
 
 Before submitting, verify:
-1. Organization's voice preserved? (Check terminology, tone, values)
-2. Ethos + Pathos + Logos balanced?
-3. Every claim supported by evidence?
-4. Stories integrated with data?
-5. Clear, direct language (no jargon)?
-6. Active voice predominant?
-7. Word count within limits?
+1. **Character/Word Limits** - Count characters (with/without spaces) and words. Within limits?
+2. **Scoring Alignment** - Does content address all "reviewerLookFor" items for this section?
+3. **Organization's Voice** - Preserved terminology, tone, values?
+4. **Ethos + Pathos + Logos** - Balanced per scoring weight?
+5. **Evidence Support** - Every claim supported?
+6. **Story Integration** - Data + stories balanced?
+7. **Clarity** - Direct language, no jargon?
+8. **Active Voice** - Predominant (80%+)?
 
-**Remember:** You write proposals that WIN funding. Clear. Compelling. Evidence-based. Authentic. Award-winning.
+**CRITICAL CHARACTER COUNT:**
+- Characters WITH spaces: [count text.length]
+- Characters WITHOUT spaces: [count text.replace(/\\s/g, '').length]
+- Words: [count text.trim().split(/\\s+/).length]
 
-Write content that reviewers can't say no to.`,
+**Remember:** You write proposals that WIN funding. Clear. Compelling. Evidence-based. Authentic. Within limits. Strategically optimized for scoring. Award-winning.
+
+Write content that reviewers can't say no to - and that fits perfectly within their constraints.`,
       temperature: 0.7,
       maxTokens: 4096,
     });
@@ -1075,7 +1086,15 @@ ${getStyleGuidePrompt()}
 - Add subheadings for navigation
 - Ensure parallel structure in lists
 - Fix grammar and punctuation
-- Verify word count compliance
+- **CRITICAL: Verify character/word count compliance**
+
+**Character Limit Check:**
+1. Count characters WITH spaces: text.length
+2. Count characters WITHOUT spaces: text.replace(/\\s/g, '').length
+3. Count words: text.trim().split(/\\s+/).length
+4. Compare against section limits (characterLimit, characterLimitNoSpaces, wordLimit)
+5. If over limit: Make content concise without losing quality
+6. If significantly under limit: Ensure all key points are addressed
 
 ## Editing Standards:
 
@@ -1114,7 +1133,14 @@ Return the edited content with:
 [Confirmation that org voice is preserved]
 </voice_verification>
 
-**Remember:** Your edits should make content clearer, more compelling, and more likely to win funding - while preserving the organization's authentic voice.`,
+<character_count_verification>
+<characters_with_spaces>[count]</characters_with_spaces>
+<characters_without_spaces>[count]</characters_without_spaces>
+<words>[count]</words>
+<within_limits>[true/false with details]</within_limits>
+</character_count_verification>
+
+**Remember:** Your edits should make content clearer, more compelling, more likely to win funding, within character limits - while preserving the organization's authentic voice.`,
       temperature: 0.5,
       maxTokens: 4096,
     });

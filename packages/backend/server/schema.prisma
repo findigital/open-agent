@@ -578,17 +578,19 @@ model Proposal {
 }
 
 model ProposalSection {
-  id          String    @id @default(uuid()) @db.VarChar
-  proposalId  String    @map("proposal_id") @db.VarChar
-  parentId    String?   @map("parent_id") @db.VarChar
-  title       String    @db.VarChar
-  type        String    @db.VarChar
-  content     String    @default("") @db.Text
-  order       Int       @db.Integer
-  wordLimit   Int?      @map("word_limit") @db.Integer
-  assignedTo  String?   @map("assigned_to") @db.VarChar
-  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
-  metadata    Json      @default("{}") @db.JsonB
+  id                     String    @id @default(uuid()) @db.VarChar
+  proposalId             String    @map("proposal_id") @db.VarChar
+  parentId               String?   @map("parent_id") @db.VarChar
+  title                  String    @db.VarChar
+  type                   String    @db.VarChar
+  content                String    @default("") @db.Text
+  order                  Int       @db.Integer
+  wordLimit              Int?      @map("word_limit") @db.Integer
+  characterLimit         Int?      @map("character_limit") @db.Integer
+  characterLimitNoSpaces Int?      @map("character_limit_no_spaces") @db.Integer
+  assignedTo             String?   @map("assigned_to") @db.VarChar
+  completedAt            DateTime? @map("completed_at") @db.Timestamptz(3)
+  metadata               Json      @default("{}") @db.JsonB
 
   proposal Proposal          @relation(fields: [proposalId], references: [id], onDelete: Cascade)
   parent   ProposalSection?  @relation("SectionHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
@@ -619,17 +621,20 @@ model ProposalTemplate {
 }
 
 model TemplateSection {
-  id             String   @id @default(uuid()) @db.VarChar
-  templateId     String   @map("template_id") @db.VarChar
-  parentId       String?  @map("parent_id") @db.VarChar
-  title          String   @db.VarChar
-  description    String?  @db.Text
-  type           String   @db.VarChar
-  order          Int      @db.Integer
-  wordLimit      Int?     @map("word_limit") @db.Integer
-  required       Boolean  @default(true)
-  promptGuidance String?  @map("prompt_guidance") @db.Text
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  id                     String   @id @default(uuid()) @db.VarChar
+  templateId             String   @map("template_id") @db.VarChar
+  parentId               String?  @map("parent_id") @db.VarChar
+  title                  String   @db.VarChar
+  description            String?  @db.Text
+  type                   String   @db.VarChar
+  order                  Int      @db.Integer
+  wordLimit              Int?     @map("word_limit") @db.Integer
+  characterLimit         Int?     @map("character_limit") @db.Integer
+  characterLimitNoSpaces Int?     @map("character_limit_no_spaces") @db.Integer
+  required               Boolean  @default(true)
+  promptGuidance         String?  @map("prompt_guidance") @db.Text
+  metadata               Json     @default("{}") @db.JsonB
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   template ProposalTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   parent   TemplateSection?  @relation("TemplateSectionHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
