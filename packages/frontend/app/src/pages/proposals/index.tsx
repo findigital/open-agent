@@ -6,3 +6,4 @@ export { GrantsSearch } from './grants-search';
 export { TemplatesLibrary } from './templates-library';
 export { RFPImport } from './rfp-import';
 export { BudgetBuilder } from './budget-builder';
+export { AwardDashboard } from './award-dashboard';
