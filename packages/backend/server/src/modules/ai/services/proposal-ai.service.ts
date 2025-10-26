@@ -2,7 +2,9 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../base/prisma/prisma.service';
 import { DocumentService } from '../../document/document.service';
 import { GrantService } from '../../grant/grant.service';
+import { Config } from '../../../base';
 import { BaseAgentService } from './base-agent.service';
+import { CopilotAgentService } from './copilot-agent.service';
 import { createAgentTools } from '../tools/agent-tools';
 import {
   AgentRole,
@@ -21,10 +23,27 @@ export class ProposalAiService {
   constructor(
     private prisma: PrismaService,
     private baseAgent: BaseAgentService,
+    private copilotAgent: CopilotAgentService,
     private documentService: DocumentService,
-    private grantService: GrantService
+    private grantService: GrantService,
+    private config: Config,
   ) {
     this.agentConfigs = this.initializeAgentConfigs();
+  }
+
+  /**
+   * Get the appropriate agent service based on configuration
+   */
+  private getAgentService() {
+    // Use copilot-based agents if copilot is enabled
+    if (this.config.copilot.enabled) {
+      this.logger.log('Using CopilotAgentService (multi-provider support enabled)');
+      return this.copilotAgent;
+    }
+
+    // Fallback to direct Anthropic SDK
+    this.logger.log('Using BaseAgentService (direct Anthropic SDK)');
+    return this.baseAgent;
   }
 
   /**
@@ -180,8 +199,9 @@ export class ProposalAiService {
     }
 
     const config = this.agentConfigs.get(AgentRole.RESEARCH)!;
+    const agentService = this.getAgentService();
 
-    const response = await this.baseAgent.execute(
+    const response = await agentService.execute(
       config,
       [
         {
@@ -208,10 +228,11 @@ export class ProposalAiService {
     tools: any[]
   ): Promise<any> {
     const config = this.agentConfigs.get(AgentRole.CONTEXT)!;
+    const agentService = this.getAgentService();
 
     const purpose = this.mapSectionTypeToDocumentPurpose(sectionType);
 
-    const response = await this.baseAgent.execute(
+    const response = await agentService.execute(
       config,
       [
         {
@@ -241,6 +262,7 @@ export class ProposalAiService {
     tools: any[]
   ): Promise<any> {
     const config = this.agentConfigs.get(AgentRole.PLANNING)!;
+    const agentService = this.getAgentService();
 
     const prompt = `
 Create a detailed outline for the "${section.title}" section of a grant proposal.
@@ -261,7 +283,7 @@ ${userGuidance ? `\n**User Guidance:**\n${userGuidance}` : ''}
 Please create a structured outline with key points to cover.
 `;
 
-    const response = await this.baseAgent.execute(
+    const response = await agentService.execute(
       config,
       [{ role: 'user', content: prompt }],
       context,
@@ -285,6 +307,7 @@ Please create a structured outline with key points to cover.
     tools: any[]
   ): Promise<any> {
     const config = this.agentConfigs.get(AgentRole.WRITING)!;
+    const agentService = this.getAgentService();
 
     const prompt = `
 Write the full content for the "${section.title}" section of a grant proposal.
@@ -305,7 +328,7 @@ ${contextResult.organizationContext}
 Please write the complete section content in Markdown format.
 `;
 
-    const response = await this.baseAgent.execute(
+    const response = await agentService.execute(
       config,
       [{ role: 'user', content: prompt }],
       context,
@@ -328,6 +351,7 @@ Please write the complete section content in Markdown format.
     tools: any[]
   ): Promise<any> {
     const config = this.agentConfigs.get(AgentRole.EDITING)!;
+    const agentService = this.getAgentService();
 
     const prompt = `
 Review and refine the following proposal section content:
@@ -355,7 +379,7 @@ Format your response as JSON:
 }
 `;
 
-    const response = await this.baseAgent.execute(
+    const response = await agentService.execute(
       config,
       [{ role: 'user', content: prompt }],
       context,
@@ -413,6 +437,7 @@ Format your response as JSON:
 
     const config = this.agentConfigs.get(AgentRole.COMPLIANCE)!;
     const tools = createAgentTools(this.prisma, this.documentService, this.grantService);
+    const agentService = this.getAgentService();
 
     const prompt = `
 Perform a comprehensive compliance check for this grant proposal.
@@ -457,7 +482,7 @@ Return results as JSON:
 }
 `;
 
-    const response = await this.baseAgent.execute(
+    const response = await agentService.execute(
       config,
       [{ role: 'user', content: prompt }],
       context,
