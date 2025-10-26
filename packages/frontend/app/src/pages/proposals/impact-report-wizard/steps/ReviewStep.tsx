@@ -13,12 +13,13 @@ interface StepProps {
 export const ReviewStep: React.FC<StepProps> = ({ report }) => {
   const navigate = useNavigate();
   const { proposalId } = useParams<{ proposalId: string }>();
-  const { submitReport, generateSummary } = useImpactReportStore();
+  const { submitReport, generateSummary, exportPdf } = useImpactReportStore();
 
   const [recipientEmail, setRecipientEmail] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const handleGenerateSummary = async () => {
     if (!report) return;
@@ -31,6 +32,22 @@ export const ReviewStep: React.FC<StepProps> = ({ report }) => {
       alert('Failed to generate summary');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!report) return;
+
+    setExporting(true);
+    try {
+      const pdfPath = await exportPdf(report.id);
+      // In a real implementation, this would trigger a file download
+      // For now, show the path
+      alert(`PDF generated successfully! Path: ${pdfPath}`);
+    } catch (error) {
+      alert('Failed to export PDF');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -92,13 +109,25 @@ export const ReviewStep: React.FC<StepProps> = ({ report }) => {
       <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-medium text-gray-700">AI-Generated Summary</h3>
-          <button
-            onClick={handleGenerateSummary}
-            disabled={generating}
-            className="text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
-          >
-            {generating ? 'Generating...' : '✨ Generate Summary'}
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleExportPdf}
+              disabled={exporting}
+              className="text-sm text-green-600 hover:text-green-700 disabled:opacity-50 flex items-center space-x-1"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+              </svg>
+              <span>{exporting ? 'Exporting...' : 'Export PDF'}</span>
+            </button>
+            <button
+              onClick={handleGenerateSummary}
+              disabled={generating}
+              className="text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
+            >
+              {generating ? 'Generating...' : '✨ Generate Summary'}
+            </button>
+          </div>
         </div>
         {report.aiGeneratedSummary ? (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap">

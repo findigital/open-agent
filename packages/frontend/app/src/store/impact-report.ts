@@ -79,6 +79,7 @@ interface ImpactReportState {
   linkDocument: (reportId: string, documentId: string) => Promise<void>;
   unlinkDocument: (reportId: string, documentId: string) => Promise<void>;
   deleteReport: (reportId: string) => Promise<void>;
+  exportPdf: (reportId: string) => Promise<string>;
   clearError: () => void;
 }
 
@@ -464,6 +465,30 @@ export const useImpactReportStore = create<ImpactReportState>()((set, get) => ({
     } catch (error) {
       set({ error: 'Failed to delete report', loading: false });
       console.error('Failed to delete report:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Export report as PDF
+   */
+  exportPdf: async (reportId: string) => {
+    set({ loading: true, error: null });
+    try {
+      const mutation = gql(`
+        mutation ExportImpactReportPdf($reportId: String!) {
+          exportImpactReportPdf(reportId: $reportId)
+        }
+      `);
+
+      const result = await mutation({ reportId });
+      const pdfPath = result.exportImpactReportPdf;
+
+      set({ loading: false });
+      return pdfPath;
+    } catch (error) {
+      set({ error: 'Failed to export PDF', loading: false });
+      console.error('Failed to export PDF:', error);
       throw error;
     }
   },

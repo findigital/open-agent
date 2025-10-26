@@ -8,6 +8,7 @@ import {
   EnhanceNarrativeInput,
   SubmitReportInput,
 } from './impact-report.service';
+import { ImpactReportPdfService } from './impact-report-pdf.service';
 import { ImpactReport } from '@prisma/client';
 
 /**
@@ -18,7 +19,10 @@ import { ImpactReport } from '@prisma/client';
 @Resolver('ImpactReport')
 @UseGuards(AuthGuard)
 export class ImpactReportResolver {
-  constructor(private readonly impactReportService: ImpactReportService) {}
+  constructor(
+    private readonly impactReportService: ImpactReportService,
+    private readonly pdfService: ImpactReportPdfService,
+  ) {}
 
   /**
    * QUERIES
@@ -136,5 +140,14 @@ export class ImpactReportResolver {
     const userId = context.req.user.id;
     await this.impactReportService.deleteReport(reportId, userId);
     return true;
+  }
+
+  @Mutation('exportImpactReportPdf')
+  async exportImpactReportPdf(
+    @Args('reportId') reportId: string,
+    @Context() context: any,
+  ): Promise<string> {
+    const userId = context.req.user.id;
+    return this.pdfService.generatePdf(reportId, userId);
   }
 }
