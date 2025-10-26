@@ -500,8 +500,10 @@ model OrganizationDocument {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  organization Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  embeddings   OrganizationDocEmbedding[]
+  organization          Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  embeddings            OrganizationDocEmbedding[]
+  requirementDocuments  RequirementDocument[]
+  reportDocuments       ReportDocument[]
 
   @@index([organizationId, type])
   @@index([organizationId])
@@ -533,34 +535,45 @@ enum ProposalStatus {
 }
 
 model Proposal {
-  id              String          @id @default(uuid()) @db.VarChar
-  workspaceId     String          @map("workspace_id") @db.VarChar
-  templateId      String?         @map("template_id") @db.VarChar
-  title           String          @db.VarChar
-  clientName      String?         @map("client_name") @db.VarChar
-  grantId         String?         @map("grant_id") @db.VarChar
-  status          ProposalStatus  @default(draft)
-  dueDate         DateTime?       @map("due_date") @db.Timestamptz(3)
-  submittedAt     DateTime?       @map("submitted_at") @db.Timestamptz(3)
-  decisionDate    DateTime?       @map("decision_date") @db.Timestamptz(3)
-  requestedAmount Decimal?        @map("requested_amount") @db.Decimal(12, 2)
-  awardedAmount   Decimal?        @map("awarded_amount") @db.Decimal(12, 2)
-  metadata        Json            @default("{}") @db.JsonB
-  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy       String          @map("created_by") @db.VarChar
+  id              String           @id @default(uuid()) @db.VarChar
+  workspaceId     String           @map("workspace_id") @db.VarChar
+  templateId      String?          @map("template_id") @db.VarChar
+  title           String           @db.VarChar
+  clientName      String?          @map("client_name") @db.VarChar
+  grantId         String?          @map("grant_id") @db.VarChar
+  status          ProposalStatus   @default(draft)
+  dueDate         DateTime?        @map("due_date") @db.Timestamptz(3)
+  submittedAt     DateTime?        @map("submitted_at") @db.Timestamptz(3)
+  decisionDate    DateTime?        @map("decision_date") @db.Timestamptz(3)
+  requestedAmount Decimal?         @map("requested_amount") @db.Decimal(12, 2)
+  awardedAmount   Decimal?         @map("awarded_amount") @db.Decimal(12, 2)
+  metadata        Json             @default("{}") @db.JsonB
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy       String           @map("created_by") @db.VarChar
 
-  workspace    Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  template     ProposalTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  sections     ProposalSection[]
-  versions     ProposalVersion[]
-  approvals    ProposalApproval[]
-  comments     ProposalComment[]
-  aiSessions   ProposalAiSession[]
+  // Grant Lifecycle Extensions
+  loiId           String?          @map("loi_id") @db.VarChar
+  outcome         ProposalOutcome? @default(PENDING)
+  outcomeDate     DateTime?        @map("outcome_date") @db.Timestamptz(3)
+  outcomeNotes    String?          @map("outcome_notes") @db.Text
+
+  workspace      Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  template       ProposalTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  loi            LetterOfIntent?       @relation(fields: [loiId], references: [id], onDelete: SetNull)
+  sections       ProposalSection[]
+  versions       ProposalVersion[]
+  approvals      ProposalApproval[]
+  comments       ProposalComment[]
+  aiSessions     ProposalAiSession[]
+  award          GrantAward?
+  communications GrantCommunication[]
 
   @@index([workspaceId, status])
   @@index([createdBy])
   @@index([status])
+  @@index([outcome])
+  @@index([loiId])
   @@map("proposals")
 }
 
@@ -926,4 +939,225 @@ model WebsiteImportJob {
   @@index([organizationId])
   @@index([status])
   @@map("website_import_jobs")
+}
+
+// ============================================================================
+// Grant Lifecycle Management Models
+// ============================================================================
+
+enum LOIStatus {
+  DRAFT
+  IN_REVIEW
+  SUBMITTED
+  ACCEPTED
+  DECLINED
+  CONVERTED
+}
+
+enum ProposalOutcome {
+  PENDING
+  AWARDED
+  NOT_AWARDED
+  WITHDRAWN
+  DECLINED_TO_APPLY
+}
+
+enum AwardStatus {
+  ACTIVE
+  COMPLETED
+  TERMINATED
+  ON_HOLD
+}
+
+enum RequirementType {
+  FINANCIAL_REPORT
+  PROGRESS_REPORT
+  IMPACT_REPORT
+  AUDIT
+  DOCUMENT_SUBMISSION
+  SITE_VISIT
+  OTHER
+}
+
+enum ComplianceStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  NEEDS_REVISION
+  OVERDUE
+}
+
+enum ReportStatus {
+  DRAFT
+  IN_REVIEW
+  SUBMITTED
+  ACCEPTED
+  NEEDS_REVISION
+}
+
+enum CommunicationType {
+  LOI_SUBMISSION
+  PROPOSAL_SUBMISSION
+  FOLLOW_UP
+  THANK_YOU
+  STATUS_INQUIRY
+  REPORT_SUBMISSION
+  GENERAL
+  COMPLIANCE_UPDATE
+}
+
+model LetterOfIntent {
+  id              String    @id @default(uuid()) @db.VarChar
+  organizationId  String    @map("organization_id") @db.VarChar
+  grantId         String?   @map("grant_id") @db.VarChar
+  title           String    @db.VarChar
+  fundingAmount   Decimal?  @map("funding_amount") @db.Decimal(12, 2)
+  submissionDate  DateTime? @map("submission_date") @db.Timestamptz(3)
+  status          LOIStatus @default(DRAFT)
+  content         String?   @db.Text
+  aiDraftVersion  Int       @default(0) @map("ai_draft_version")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  proposals       Proposal[]
+  communications  GrantCommunication[]
+
+  @@index([organizationId])
+  @@index([grantId])
+  @@index([status])
+  @@map("letters_of_intent")
+}
+
+model GrantAward {
+  id                String      @id @default(uuid()) @db.VarChar
+  proposalId        String      @unique @map("proposal_id") @db.VarChar
+  awardAmount       Decimal     @map("award_amount") @db.Decimal(12, 2)
+  awardDate         DateTime    @map("award_date") @db.Timestamptz(3)
+  projectStartDate  DateTime    @map("project_start_date") @db.Timestamptz(3)
+  projectEndDate    DateTime    @map("project_end_date") @db.Timestamptz(3)
+  status            AwardStatus @default(ACTIVE)
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  proposal       Proposal                @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  requirements   ComplianceRequirement[]
+  reports        ImpactReport[]
+  communications GrantCommunication[]
+
+  @@index([proposalId])
+  @@index([status])
+  @@index([projectEndDate])
+  @@map("grant_awards")
+}
+
+model ComplianceRequirement {
+  id               String           @id @default(uuid()) @db.VarChar
+  awardId          String           @map("award_id") @db.VarChar
+  type             RequirementType
+  title            String           @db.VarChar
+  description      String           @db.Text
+  dueDate          DateTime         @map("due_date") @db.Timestamptz(3)
+  status           ComplianceStatus @default(PENDING)
+  notificationSent Boolean          @default(false) @map("notification_sent")
+  remindersSent    Int              @default(0) @map("reminders_sent")
+  completedDate    DateTime?        @map("completed_date") @db.Timestamptz(3)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  award     GrantAward              @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  documents RequirementDocument[]
+
+  @@index([awardId])
+  @@index([dueDate])
+  @@index([status])
+  @@map("compliance_requirements")
+}
+
+model ImpactReport {
+  id                    String       @id @default(uuid()) @db.VarChar
+  awardId               String       @map("award_id") @db.VarChar
+  reportingPeriodStart  DateTime     @map("reporting_period_start") @db.Timestamptz(3)
+  reportingPeriodEnd    DateTime     @map("reporting_period_end") @db.Timestamptz(3)
+  status                ReportStatus @default(DRAFT)
+  peopleServed          Int?         @map("people_served")
+  programsDelivered     Int?         @map("programs_delivered")
+  outcomesAchieved      Json?        @map("outcomes_achieved") @db.JsonB
+  challenges            String?      @db.Text
+  successes             String?      @db.Text
+  storiesOfImpact       String?      @map("stories_of_impact") @db.Text
+  lessonsLearned        String?      @map("lessons_learned") @db.Text
+  financialSummary      Json?        @map("financial_summary") @db.JsonB
+  aiGeneratedSummary    String?      @map("ai_generated_summary") @db.Text
+  aiGeneratedNarrative  String?      @map("ai_generated_narrative") @db.Text
+  qualityScore          Int?         @map("quality_score")
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  submittedAt           DateTime?    @map("submitted_at") @db.Timestamptz(3)
+
+  award     GrantAward        @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  documents ReportDocument[]
+
+  @@index([awardId])
+  @@index([status])
+  @@index([reportingPeriodEnd])
+  @@map("impact_reports")
+}
+
+model GrantCommunication {
+  id             String             @id @default(uuid()) @db.VarChar
+  awardId        String?            @map("award_id") @db.VarChar
+  proposalId     String?            @map("proposal_id") @db.VarChar
+  loiId          String?            @map("loi_id") @db.VarChar
+  type           CommunicationType
+  subject        String             @db.VarChar
+  body           String             @db.Text
+  aiDrafted      Boolean            @default(false) @map("ai_drafted")
+  aiPrompt       String?            @map("ai_prompt") @db.Text
+  userEdited     Boolean            @default(false) @map("user_edited")
+  sentAt         DateTime?          @map("sent_at") @db.Timestamptz(3)
+  sentBy         String?            @map("sent_by") @db.VarChar
+  recipientEmail String?            @map("recipient_email") @db.VarChar
+  recipientName  String?            @map("recipient_name") @db.VarChar
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  award    GrantAward?      @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  proposal Proposal?        @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  loi      LetterOfIntent?  @relation(fields: [loiId], references: [id], onDelete: Cascade)
+
+  @@index([awardId])
+  @@index([proposalId])
+  @@index([loiId])
+  @@index([type])
+  @@map("grant_communications")
+}
+
+model RequirementDocument {
+  id            String   @id @default(uuid()) @db.VarChar
+  requirementId String   @map("requirement_id") @db.VarChar
+  documentId    String   @map("document_id") @db.VarChar
+  uploadedAt    DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(3)
+
+  requirement ComplianceRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  document    OrganizationDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([requirementId, documentId])
+  @@index([requirementId])
+  @@map("requirement_documents")
+}
+
+model ReportDocument {
+  id         String   @id @default(uuid()) @db.VarChar
+  reportId   String   @map("report_id") @db.VarChar
+  documentId String   @map("document_id") @db.VarChar
+  category   String?  @db.VarChar
+  uploadedAt DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(3)
+
+  report   ImpactReport         @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  document OrganizationDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([reportId, documentId])
+  @@index([reportId])
+  @@map("report_documents")
 }
