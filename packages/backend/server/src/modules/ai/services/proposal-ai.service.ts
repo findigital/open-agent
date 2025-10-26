@@ -6,6 +6,7 @@ import { Config } from '../../../base';
 import { BaseAgentService } from './base-agent.service';
 import { CopilotAgentService } from './copilot-agent.service';
 import { createAgentTools } from '../tools/agent-tools';
+import { createGrantAgentTools } from '../tools/grant-agent-tools';
 import {
   AgentRole,
   AgentConfig,
@@ -143,7 +144,10 @@ export class ProposalAiService {
   ): Promise<ProposalGenerationResult> {
     this.logger.log(`Running multi-agent workflow for section: ${section.title}`);
 
-    const tools = createAgentTools(this.prisma, this.documentService, this.grantService);
+    // Combine base tools with grant-specific tools
+    const baseTools = createAgentTools(this.prisma, this.documentService, this.grantService);
+    const grantTools = createGrantAgentTools(this.config, this.prisma);
+    const tools = [...baseTools, ...grantTools];
 
     // Step 1: Research Agent - Gather grant information
     const researchResult = await this.runResearchAgent(context, proposal.grantId, tools);
@@ -441,7 +445,10 @@ Format your response as JSON:
     };
 
     const config = this.agentConfigs.get(AgentRole.COMPLIANCE)!;
-    const tools = createAgentTools(this.prisma, this.documentService, this.grantService);
+    // Combine base tools with grant-specific tools
+    const baseTools = createAgentTools(this.prisma, this.documentService, this.grantService);
+    const grantTools = createGrantAgentTools(this.config, this.prisma);
+    const tools = [...baseTools, ...grantTools];
     const agentService = this.getAgentService();
 
     const prompt = `
